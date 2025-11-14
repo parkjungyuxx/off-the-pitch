@@ -11,13 +11,23 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils"
 
 interface SidebarProps {
-  onLeaguesClick: () => void
+  activeMenu: "home" | "search" | "favorites" | "leagues" | null
+  onMenuClick: (menu: "home" | "search" | "favorites" | "leagues") => void
   selectedLeague: string | null
+  showLeagueSelector?: boolean
   theme?: "light" | "dark"
   onThemeChange?: (theme: "light" | "dark") => void
 }
 
-export function Sidebar({ onLeaguesClick, selectedLeague, theme = "dark", onThemeChange }: SidebarProps) {
+export function Sidebar({
+  activeMenu,
+  onMenuClick,
+  selectedLeague,
+  showLeagueSelector = false,
+  theme = "dark",
+  onThemeChange,
+}: SidebarProps) {
+
   return (
     <>
       {/* Desktop Sidebar */}
@@ -31,19 +41,44 @@ export function Sidebar({ onLeaguesClick, selectedLeague, theme = "dark", onThem
         </div>
 
         <nav className="flex flex-col items-center justify-center gap-4 flex-1">
-          <Button variant="ghost" size="icon" className="w-12 h-12 rounded-xl hover:bg-sidebar-accent" asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "w-12 h-12 rounded-xl hover:bg-sidebar-accent",
+              activeMenu === "home" && "bg-sidebar-accent hover:bg-sidebar-accent"
+            )}
+            onClick={() => onMenuClick("home")}
+            asChild
+          >
             <Link href="/">
               <GoHome className="w-6 h-6" style={{ strokeWidth: 1.5 }} />
               <span className="sr-only">Home</span>
             </Link>
           </Button>
 
-          <Button variant="ghost" size="icon" className="w-12 h-12 rounded-xl hover:bg-sidebar-accent">
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "w-12 h-12 rounded-xl hover:bg-sidebar-accent",
+              activeMenu === "search" && "bg-sidebar-accent hover:bg-sidebar-accent"
+            )}
+            onClick={() => onMenuClick("search")}
+          >
             <Search className="w-6 h-6" />
             <span className="sr-only">Search</span>
           </Button>
 
-          <Button variant="ghost" size="icon" className="w-12 h-12 rounded-xl hover:bg-sidebar-accent">
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "w-12 h-12 rounded-xl hover:bg-sidebar-accent",
+              activeMenu === "favorites" && "bg-sidebar-accent hover:bg-sidebar-accent"
+            )}
+            onClick={() => onMenuClick("favorites")}
+          >
             <Heart className="w-6 h-6" />
             <span className="sr-only">Favorites</span>
           </Button>
@@ -51,8 +86,11 @@ export function Sidebar({ onLeaguesClick, selectedLeague, theme = "dark", onThem
           <Button
             variant="ghost"
             size="icon"
-            className={cn("w-12 h-12 rounded-xl hover:bg-sidebar-accent", selectedLeague && "bg-sidebar-accent")}
-            onClick={onLeaguesClick}
+            className={cn(
+              "w-12 h-12 rounded-xl hover:bg-sidebar-accent",
+              activeMenu === "leagues" && "bg-sidebar-accent hover:bg-sidebar-accent"
+            )}
+            onClick={() => onMenuClick("leagues")}
           >
             <BsTrophy className="w-6 h-6" />
             <span className="sr-only">Football Leagues</span>
@@ -99,19 +137,44 @@ export function Sidebar({ onLeaguesClick, selectedLeague, theme = "dark", onThem
 
       {/* Mobile Bottom Navigation */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-sidebar border-t border-sidebar-border flex items-center justify-around z-20">
-        <Button variant="ghost" size="icon" className="w-12 h-12 rounded-xl hover:bg-sidebar-accent" asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "w-12 h-12 rounded-xl hover:bg-sidebar-accent",
+            activeMenu === "home" && "bg-sidebar-accent hover:bg-sidebar-accent"
+          )}
+          onClick={() => onMenuClick("home")}
+          asChild
+        >
           <Link href="/">
             <GoHome className="w-6 h-6" style={{ strokeWidth: 1.5 }} />
             <span className="sr-only">Home</span>
           </Link>
         </Button>
 
-        <Button variant="ghost" size="icon" className="w-12 h-12 rounded-xl hover:bg-sidebar-accent">
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "w-12 h-12 rounded-xl hover:bg-sidebar-accent",
+            activeMenu === "search" && "bg-sidebar-accent hover:bg-sidebar-accent"
+          )}
+          onClick={() => onMenuClick("search")}
+        >
           <Search className="w-6 h-6" />
           <span className="sr-only">Search</span>
         </Button>
 
-        <Button variant="ghost" size="icon" className="w-12 h-12 rounded-xl hover:bg-sidebar-accent">
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "w-12 h-12 rounded-xl hover:bg-sidebar-accent",
+            activeMenu === "favorites" && "bg-sidebar-accent hover:bg-sidebar-accent"
+          )}
+          onClick={() => onMenuClick("favorites")}
+        >
           <Heart className="w-6 h-6" />
           <span className="sr-only">Favorites</span>
         </Button>
@@ -119,8 +182,11 @@ export function Sidebar({ onLeaguesClick, selectedLeague, theme = "dark", onThem
         <Button
           variant="ghost"
           size="icon"
-          className={cn("w-12 h-12 rounded-xl hover:bg-sidebar-accent", selectedLeague && "bg-sidebar-accent")}
-          onClick={onLeaguesClick}
+          className={cn(
+            "w-12 h-12 rounded-xl hover:bg-sidebar-accent",
+            activeMenu === "leagues" && "bg-sidebar-accent hover:bg-sidebar-accent"
+          )}
+          onClick={() => onMenuClick("leagues")}
         >
           <BsTrophy className="w-6 h-6" />
           <span className="sr-only">Football Leagues</span>

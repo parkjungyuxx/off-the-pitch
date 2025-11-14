@@ -104,6 +104,9 @@ export default function HomePage() {
   const [showLeagueSelector, setShowLeagueSelector] = useState(false);
   const [favorites, setFavorites] = useState<number[]>([]);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [activeMenu, setActiveMenu] = useState<
+    "home" | "search" | "favorites" | "leagues" | null
+  >("home");
 
   useEffect(() => {
     const root = document.documentElement;
@@ -127,8 +130,17 @@ export default function HomePage() {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar
-        onLeaguesClick={() => setShowLeagueSelector(!showLeagueSelector)}
+        activeMenu={activeMenu}
+        onMenuClick={(menu) => {
+          setActiveMenu(menu);
+          if (menu === "leagues") {
+            setShowLeagueSelector(!showLeagueSelector);
+          } else {
+            setShowLeagueSelector(false);
+          }
+        }}
         selectedLeague={selectedLeague}
+        showLeagueSelector={showLeagueSelector}
         theme={theme}
         onThemeChange={setTheme}
       />
