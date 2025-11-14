@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { FeedPost, type FeedPostProps } from "@/components/feed-post";
 import { LeagueSelector } from "@/components/league-selector";
+import { cn } from "@/lib/utils";
 
 // Mock data for transfer news
 const transferNews = [
@@ -139,25 +140,29 @@ export default function HomePage() {
               <h1 className="text-3xl font-display tracking-wide text-balance">
                 OFF THE PITCH
               </h1>
-              {selectedLeague && (
-                <p className="text-muted-foreground text-sm mt-1">
-                  {selectedLeague}
+              <div className="min-h-[20px]">
+                <p
+                  className={cn(
+                    "text-muted-foreground text-sm mt-1 transition-all",
+                    selectedLeague ? "opacity-100" : "opacity-0 invisible"
+                  )}
+                >
+                  {selectedLeague || "\u00A0"}
                 </p>
-              )}
+              </div>
             </div>
           </div>
 
-          {showLeagueSelector && (
-            <LeagueSelector
-              selectedLeague={selectedLeague}
-              onSelectLeague={(league) => {
-                setSelectedLeague(league);
-              }}
-              onClose={() => setShowLeagueSelector(false)}
-            />
-          )}
-
           <div className="p-4 lg:p-6 space-y-4">
+            {showLeagueSelector && (
+              <LeagueSelector
+                selectedLeague={selectedLeague}
+                onSelectLeague={(league) => {
+                  setSelectedLeague(league);
+                }}
+                onClose={() => setShowLeagueSelector(false)}
+              />
+            )}
             {filteredNews.map((post) => (
               <FeedPost
                 key={post.id}
