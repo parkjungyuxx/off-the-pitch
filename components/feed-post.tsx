@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-interface FeedPostProps {
+export interface FeedPostProps {
   journalist: string
   handle: string
   credibility: 3 | 4 | 5

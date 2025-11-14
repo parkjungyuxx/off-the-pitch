@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Sidebar } from "@/components/sidebar"
-import { FeedPost } from "@/components/feed-post"
-import { LeagueSelector } from "@/components/league-selector"
+import { useState, useEffect } from "react";
+import { Sidebar } from "@/components/sidebar";
+import { FeedPost, type FeedPostProps } from "@/components/feed-post";
+import { LeagueSelector } from "@/components/league-selector";
 
 // Mock data for transfer news
 const transferNews = [
@@ -48,7 +48,8 @@ const transferNews = [
     journalist: "Matteo Moretto",
     handle: "@MatteMoretto",
     credibility: 4,
-    content: "Barcelona are preparing a new proposal for Bernardo Silva. Manchester City want €80M. Talks continue.",
+    content:
+      "Barcelona are preparing a new proposal for Bernardo Silva. Manchester City want €80M. Talks continue.",
     time: "1h",
     link: "#",
     league: "La Liga",
@@ -59,7 +60,8 @@ const transferNews = [
     journalist: "Florian Plettenberg",
     handle: "@Plettigoal",
     credibility: 4,
-    content: "NEWS: Bayern Munich have submitted an official bid for Randal Kolo Muani. PSG considering the offer. 🔴",
+    content:
+      "NEWS: Bayern Munich have submitted an official bid for Randal Kolo Muani. PSG considering the offer. 🔴",
     time: "2h",
     link: "#",
     league: "Bundesliga",
@@ -89,28 +91,37 @@ const transferNews = [
     league: "K League",
     avatar: "/korean-journalist.jpg",
   },
-]
+] satisfies Array<
+  FeedPostProps & {
+    id: number;
+    league: string;
+  }
+>;
 
 export default function HomePage() {
-  const [selectedLeague, setSelectedLeague] = useState<string | null>(null)
-  const [showLeagueSelector, setShowLeagueSelector] = useState(false)
-  const [favorites, setFavorites] = useState<number[]>([])
-  const [theme, setTheme] = useState<"light" | "dark">("dark")
+  const [selectedLeague, setSelectedLeague] = useState<string | null>(null);
+  const [showLeagueSelector, setShowLeagueSelector] = useState(false);
+  const [favorites, setFavorites] = useState<number[]>([]);
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
 
   useEffect(() => {
-    const root = document.documentElement
+    const root = document.documentElement;
     if (theme === "light") {
-      root.classList.add("light")
+      root.classList.add("light");
     } else {
-      root.classList.remove("light")
+      root.classList.remove("light");
     }
-  }, [theme])
+  }, [theme]);
 
-  const filteredNews = selectedLeague ? transferNews.filter((news) => news.league === selectedLeague) : transferNews
+  const filteredNews = selectedLeague
+    ? transferNews.filter((news) => news.league === selectedLeague)
+    : transferNews;
 
   const toggleFavorite = (id: number) => {
-    setFavorites((prev) => (prev.includes(id) ? prev.filter((favId) => favId !== id) : [...prev, id]))
-  }
+    setFavorites((prev) =>
+      prev.includes(id) ? prev.filter((favId) => favId !== id) : [...prev, id]
+    );
+  };
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -125,8 +136,14 @@ export default function HomePage() {
         <div className="max-w-2xl mx-auto">
           <div className="sticky top-0 z-10 backdrop-blur-xl bg-background/80 border-b border-border">
             <div className="px-4 lg:px-6 py-6">
-              <h1 className="text-3xl font-display tracking-wide text-balance">OFF THE PITCH</h1>
-              {selectedLeague && <p className="text-muted-foreground text-sm mt-1">{selectedLeague}</p>}
+              <h1 className="text-3xl font-display tracking-wide text-balance">
+                OFF THE PITCH
+              </h1>
+              {selectedLeague && (
+                <p className="text-muted-foreground text-sm mt-1">
+                  {selectedLeague}
+                </p>
+              )}
             </div>
           </div>
 
@@ -134,8 +151,7 @@ export default function HomePage() {
             <LeagueSelector
               selectedLeague={selectedLeague}
               onSelectLeague={(league) => {
-                setSelectedLeague(league)
-                setShowLeagueSelector(false)
+                setSelectedLeague(league);
               }}
               onClose={() => setShowLeagueSelector(false)}
             />
@@ -154,5 +170,5 @@ export default function HomePage() {
         </div>
       </main>
     </div>
-  )
+  );
 }
