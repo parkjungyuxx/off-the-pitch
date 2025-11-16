@@ -17,6 +17,7 @@ const leagues = [
   { name: "Serie A", country: "Italy", emoji: "🇮🇹" },
   { name: "Bundesliga", country: "Germany", emoji: "🇩🇪" },
   { name: "Ligue 1", country: "France", emoji: "🇫🇷" },
+  { name: "Others", country: "Rest of the world", emoji: "🌏" },
 ];
 
 export function LeagueSelector({

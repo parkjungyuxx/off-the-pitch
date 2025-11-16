@@ -37,7 +37,7 @@ export function FeedPost({
   const [failedImageIdx, setFailedImageIdx] = useState<Set<number>>(new Set())
 
   return (
-    <Card className="p-6 rounded-2xl border border-border bg-card hover:bg-card/80 transition-all cursor-pointer group shadow-lg hover:shadow-xl">
+    <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card hover:bg-card/80 transition-all cursor-pointer group shadow-lg hover:shadow-xl">
       <div className="flex gap-4">
         {/* 프로필 이미지 */}
         <div className="shrink-0">

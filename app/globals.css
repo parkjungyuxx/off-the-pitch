@@ -1,6 +1,13 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@font-face {
+  font-family: 'Vitro Inspire';
+  src: url('/fonts/VITRO_INSPIRE_OTF.otf') format('opentype');
+  font-weight: 700;
+  font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -73,7 +80,7 @@
 @theme inline {
   --font-sans: var(--font-inter), "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI",
     Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-display: var(--font-bebas), "Bebas Neue", "Impact", sans-serif;
+  --font-display: "Vitro Inspire", var(--font-bebas), "Bebas Neue", "Impact", sans-serif;
   --font-mono: "Geist Mono", "Geist Mono Fallback";
   --color-background: var(--background);
   --color-foreground: var(--foreground);

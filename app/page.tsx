@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { IoIosArrowDown } from "react-icons/io";
 import { Sidebar } from "@/components/sidebar";
 import { FeedPost, type FeedPostProps } from "@/components/feed-post";
 import { LeagueSelector } from "@/components/league-selector";
-import { cn } from "@/lib/utils";
 import { fetchTweets, type Tweet } from "@/lib/tweets";
 
 const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
@@ -92,20 +92,15 @@ export default function HomePage() {
 
       <main className="flex-1 ml-0 lg:ml-20">
         <div className="max-w-2xl mx-auto">
-          <div className="sticky top-0 z-10 backdrop-blur-xl bg-background/80 border-b border-border">
+          <div className="sticky top-0 z-10 backdrop-blur-xl bg-background/80">
             <div className="px-4 lg:px-6 py-6">
-              <h1 className="text-3xl font-display tracking-wide text-balance">
-                OFF THE PITCH
+              <h1 className="text-3xl font-display font-bold tracking-wide text-balance">
+                오프 더 피치
               </h1>
-              <div className="min-h-[20px]">
-                <p
-                  className={cn(
-                    "text-muted-foreground text-sm mt-1 transition-all",
-                    selectedLeague ? "opacity-100" : "opacity-0 invisible"
-                  )}
-                >
-                  {selectedLeague || "\u00A0"}
-                </p>
+              <div className="mt-1 flex justify-center">
+                <div className="flex items-center justify-center size-6 rounded-full border border-[rgb(57,57,57)] bg-card">
+                  <IoIosArrowDown className="size-4 text-white" />
+                </div>
               </div>
             </div>
           </div>
