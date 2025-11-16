@@ -4,10 +4,11 @@ export type Tweet = {
   tweet_id: string;
   author_name: string;
   author_username: string;
+  author_profile_image?: string | null;
   tweet_text: string;
   images: string[] | null;
   videos: string[] | null;
-  created_at: string; // ISO
+  created_at: string; // ISO 문자열
   url: string;
 };
 
@@ -16,8 +17,8 @@ export type FetchOptions = {
   journalists?: string[];
   keywords?: string[];
   hasMedia?: boolean;
-  since?: string; // ISO
-  until?: string; // ISO
+  since?: string; // ISO 문자열
+  until?: string; // ISO 문자열
   afterId?: string;
   beforeId?: string;
 };
@@ -49,11 +50,11 @@ export const fetchTweets = async ({
   let query = supabase
     .from('tweets')
     .select(
-      'tweet_id,author_name,author_username,tweet_text,images,videos,created_at,url',
+      'tweet_id,author_name,author_username,author_profile_image,tweet_text,images,videos,created_at,url',
       { count: 'exact' },
     );
 
-  // 기간 필터: 기본 최근 30일
+  // 기간 필터: 기본은 최근 30일
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   query = query.gte('created_at', since ?? thirtyDaysAgo.toISOString());
@@ -66,21 +67,21 @@ export const fetchTweets = async ({
   }
 
   if (keywords && keywords.length > 0) {
-    // 여러 키워드 OR 매칭 (ILIKE)
-    // 이 때 키워드에 포함될 수 있는 콤마 등은 적절히 이스케이프할 수 없으므로 간단 가정
+    // 여러 키워드를 OR 조건으로 매칭(ILIKE)
+    // 간단 처리: 특수문자 이스케이프는 고려하지 않음
     const ors = keywords.map((k) => `tweet_text.ilike.%${k}%`).join(',');
     query = query.or(ors);
   }
 
   if (hasMedia) {
-    // images 또는 videos 배열 길이가 0보다 큰 경우만
+    // images 혹은 videos 배열 길이가 0보다 큰 경우만 포함
     query = query.or('array_length(images,1).gt.0,array_length(videos,1).gt.0');
   }
 
-  // 정렬: 최신순 (created_at DESC, tie-breaker: tweet_id DESC)
+  // 정렬: 최신순 (created_at DESC, 동일 시각일 때는 tweet_id DESC)
   query = query.order('created_at', { ascending: false }).order('tweet_id', { ascending: false });
 
-  // 커서 처리
+  // 커서 처리: afterId/beforeId를 기준으로 더 최신/오래된 범위만 조회
   if (afterId || beforeId) {
     const cursorId = afterId || (beforeId as string);
     const { data: cursorRow, error: cursorErr } = await supabase
@@ -89,7 +90,7 @@ export const fetchTweets = async ({
       .eq('tweet_id', cursorId)
       .single();
     if (cursorErr) {
-      // 사용자에게 안전한 메시지, 상세는 콘솔에 남김
+      // 사용자에게는 안전한 메시지를, 콘솔에는 상세 에러를 남김
       // eslint-disable-next-line no-console
       console.error('[fetchTweets] cursor fetch error', cursorErr);
       throw new Error('데이터를 불러오는 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.');
@@ -125,6 +126,7 @@ export const fetchTweets = async ({
     tweet_id: row.tweet_id,
     author_name: row.author_name,
     author_username: row.author_username,
+    author_profile_image: row.author_profile_image ?? null,
     tweet_text: row.tweet_text,
     images: row.images ?? null,
     videos: row.videos ?? null,

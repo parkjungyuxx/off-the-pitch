@@ -13,6 +13,7 @@ export interface FeedPostProps {
   handle: string
   credibility: 3 | 4 | 5
   content: string
+  images?: string[] | null
   time: string
   link: string
   avatar: string
@@ -25,6 +26,7 @@ export function FeedPost({
   handle,
   credibility,
   content,
+  images,
   time,
   link,
   avatar,
@@ -36,12 +38,12 @@ export function FeedPost({
   return (
     <Card className="p-6 rounded-2xl border border-border bg-card hover:bg-card/80 transition-all cursor-pointer group shadow-lg hover:shadow-xl">
       <div className="flex gap-4">
-        {/* Avatar */}
-        <div className="flex-shrink-0">
+        {/* 프로필 이미지 */}
+        <div className="shrink-0">
           <Image src={avatar || "/placeholder.svg"} alt={journalist} width={48} height={48} className="rounded-full" />
         </div>
 
-        {/* Content */}
+        {/* 본문 영역 */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="flex items-center gap-2 min-w-0 flex-wrap">
@@ -49,7 +51,7 @@ export function FeedPost({
               <CredibilityIcon level={credibility} />
               <span className="text-muted-foreground text-sm">{handle}</span>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               <span className="text-muted-foreground text-sm">{time}</span>
               {onToggleFavorite && (
                 <Button
@@ -73,6 +75,20 @@ export function FeedPost({
           </div>
 
           <p className="text-card-foreground text-[15px] leading-relaxed mb-3">{content}</p>
+
+          {images && images.length > 0 && (
+            <div className="mt-3 grid grid-cols-1 gap-2">
+              {images.slice(0, 4).map((src, idx) => (
+                <img
+                  key={idx}
+                  src={src || "/placeholder.svg"}
+                  alt={`${journalist} media ${idx + 1}`}
+                  loading="lazy"
+                  className="w-full h-auto rounded-2xl object-cover bg-muted"
+                />
+              ))}
+            </div>
+          )}
 
           <div className="flex items-center gap-3">
             <Button
@@ -105,9 +121,9 @@ export function FeedPost({
 
 function CredibilityIcon({ level }: { level: 3 | 4 | 5 }) {
   const icons = {
-    5: "🌘", // Tier 1 - Crescent moon
-    4: "🌓", // Tier 2 - Half moon
-    3: "🌕", // Tier 3 - Full moon
+    5: "🌘", // 신뢰도 1단계(초승달)
+    4: "🌓", // 신뢰도 2단계(반달)
+    3: "🌕", // 신뢰도 3단계(보름달)
   }
 
   return (
