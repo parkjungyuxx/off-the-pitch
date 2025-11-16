@@ -34,6 +34,7 @@ export function FeedPost({
   onToggleFavorite,
 }: FeedPostProps) {
   const [isTranslated, setIsTranslated] = useState(false)
+  const [failedImageIdx, setFailedImageIdx] = useState<Set<number>>(new Set())
 
   return (
     <Card className="p-6 rounded-2xl border border-border bg-card hover:bg-card/80 transition-all cursor-pointer group shadow-lg hover:shadow-xl">
@@ -78,15 +79,27 @@ export function FeedPost({
 
           {images && images.length > 0 && (
             <div className="mt-3 grid grid-cols-1 gap-2">
-              {images.slice(0, 4).map((src, idx) => (
-                <img
-                  key={idx}
-                  src={src || "/placeholder.svg"}
-                  alt={`${journalist} media ${idx + 1}`}
-                  loading="lazy"
-                  className="w-full h-auto rounded-2xl object-cover bg-muted"
-                />
-              ))}
+              {images.slice(0, 4).map((src, idx) => {
+                if (!src || failedImageIdx.has(idx)) return null
+                return (
+                  <img
+                    key={idx}
+                    src={src}
+                    alt={`${journalist} media ${idx + 1}`}
+                    loading="lazy"
+                    decoding="async"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-auto rounded-2xl object-cover bg-muted"
+                    onError={() => {
+                      setFailedImageIdx((prev) => {
+                        const next = new Set(prev)
+                        next.add(idx)
+                        return next
+                      })
+                    }}
+                  />
+                )
+              })}
             </div>
           )}
 
