@@ -63,13 +63,13 @@ export function FeedPost({
                   size="sm"
                   variant={isFavorited ? "secondary" : "outline"}
                   className={cn(
-                    "rounded-full px-4 h-8 text-xs font-medium transition-all",
+                    "rounded-full px-4 h-8 text-xs font-medium transition-all border border-[rgb(57,57,57)]",
                     isFavorited
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "bg-background text-foreground hover:bg-secondary border-border",
+                      ? "bg-[rgb(24,24,24)] text-white hover:bg-[rgb(24,24,24)]"
+                      : "bg-white text-black hover:bg-white/90",
                   )}
                 >
-                  {isFavorited ? "Following" : "Follow"}
+                  {isFavorited ? "팔로잉" : "팔로우"}
                 </Button>
               )}
             </div>
@@ -114,7 +114,7 @@ export function FeedPost({
               }}
             >
               <Languages className="w-3.5 h-3.5 mr-1.5" />
-              {isTranslated ? "Show Original" : "Translate"}
+              {isTranslated ? "원문 보기" : "번역 보기"}
             </Button>
 
             <Link
@@ -122,7 +122,7 @@ export function FeedPost({
               className="inline-flex items-center gap-1.5 text-primary hover:text-primary/80 text-xs font-medium transition-colors"
               onClick={(e) => e.stopPropagation()}
             >
-              <span>View original post</span>
+              <span>원문 트윗 보기</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </Link>
           </div>
