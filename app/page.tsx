@@ -127,8 +127,11 @@ export default function HomePage() {
             {!loading &&
               !error &&
               tweets.map((t) => {
+                const displayName =
+                  (t.author_name?.split("@")[0]?.trim() as string) ||
+                  t.author_name;
                 const mapped: FeedPostProps = {
-                  journalist: t.author_name,
+                  journalist: displayName,
                   handle: `@${t.author_username}`,
                   credibility: 4, // 기본값
                   content: t.tweet_text,
