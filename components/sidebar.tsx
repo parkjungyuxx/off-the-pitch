@@ -34,7 +34,7 @@ export function Sidebar({
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-20 flex-col items-center py-8 bg-sidebar z-20">
+      <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-20 flex-col items-center py-8 bg-background z-20">
         <div className="mb-8">
           <Link href="/">
             <div className="w-12 h-12 flex items-center justify-center">
@@ -159,7 +159,7 @@ export function Sidebar({
       </aside>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-sidebar border-t border-sidebar-border flex items-center justify-around z-20">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-background border-t border-border flex items-center justify-around z-20">
         <Button
           variant="ghost"
           size="icon"
