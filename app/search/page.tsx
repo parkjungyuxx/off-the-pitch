@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import Image from "next/image";
@@ -109,27 +110,34 @@ export default function SearchPage() {
                         key={journalist.username}
                         className="flex items-center gap-4 p-3 rounded-xl hover:bg-secondary/30 transition-all"
                       >
-                        <div className="shrink-0">
-                          <Image
-                            src={journalist.profileImage || "/placeholder.svg"}
-                            alt={journalist.name}
-                            width={56}
-                            height={56}
-                            className="rounded-full"
-                          />
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold text-card-foreground">
-                              {journalist.name}
-                            </span>
-                            <CredibilityIcon level={journalist.credibility} />
+                        <Link
+                          href={`/journalists/${journalist.username}`}
+                          className="flex items-center gap-4 flex-1 min-w-0"
+                        >
+                          <div className="shrink-0">
+                            <Image
+                              src={
+                                journalist.profileImage || "/placeholder.svg"
+                              }
+                              alt={journalist.name}
+                              width={56}
+                              height={56}
+                              className="rounded-full"
+                            />
                           </div>
-                          <p className="text-muted-foreground text-sm">
-                            @{journalist.username}
-                          </p>
-                        </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-semibold text-card-foreground">
+                                {journalist.name}
+                              </span>
+                              <CredibilityIcon level={journalist.credibility} />
+                            </div>
+                            <p className="text-muted-foreground text-sm">
+                              @{journalist.username}
+                            </p>
+                          </div>
+                        </Link>
 
                         <Button
                           onClick={() => toggleFavorite(journalist.username)}
