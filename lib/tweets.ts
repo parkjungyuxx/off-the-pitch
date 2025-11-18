@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { getSupabaseClient } from "@/lib/supabase";
 
 export type Tweet = {
   tweet_id: string;
@@ -43,57 +43,61 @@ export const fetchTweets = async ({
   beforeId,
 }: FetchOptions = {}): Promise<FetchTweetsResult> => {
   if (afterId && beforeId) {
-    throw new Error('afterId와 beforeId는 동시에 사용할 수 없습니다.');
+    throw new Error("afterId와 beforeId는 동시에 사용할 수 없습니다.");
   }
 
   const supabase = getSupabaseClient();
   let query = supabase
-    .from('tweets')
+    .from("tweets")
     .select(
-      'tweet_id,author_name,author_username,author_profile_image,tweet_text,images,videos,created_at,url',
-      { count: 'exact' },
+      "tweet_id,author_name,author_username,author_profile_image,tweet_text,images,videos,created_at,url",
+      { count: "exact" }
     );
 
   // 기간 필터: 기본은 최근 30일
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  query = query.gte('created_at', since ?? thirtyDaysAgo.toISOString());
+  query = query.gte("created_at", since ?? thirtyDaysAgo.toISOString());
   if (until) {
-    query = query.lte('created_at', until);
+    query = query.lte("created_at", until);
   }
 
   if (journalists && journalists.length > 0) {
-    query = query.in('author_username', journalists);
+    query = query.in("author_username", journalists);
   }
 
   if (keywords && keywords.length > 0) {
     // 여러 키워드를 OR 조건으로 매칭(ILIKE)
     // 간단 처리: 특수문자 이스케이프는 고려하지 않음
-    const ors = keywords.map((k) => `tweet_text.ilike.%${k}%`).join(',');
+    const ors = keywords.map((k) => `tweet_text.ilike.%${k}%`).join(",");
     query = query.or(ors);
   }
 
   if (hasMedia) {
     // images 혹은 videos 배열 길이가 0보다 큰 경우만 포함
-    query = query.or('array_length(images,1).gt.0,array_length(videos,1).gt.0');
+    query = query.or("array_length(images,1).gt.0,array_length(videos,1).gt.0");
   }
 
   // 정렬: 최신순 (created_at DESC, 동일 시각일 때는 tweet_id DESC)
-  query = query.order('created_at', { ascending: false }).order('tweet_id', { ascending: false });
+  query = query
+    .order("created_at", { ascending: false })
+    .order("tweet_id", { ascending: false });
 
   // 커서 처리: afterId/beforeId를 기준으로 더 최신/오래된 범위만 조회
   if (afterId || beforeId) {
     const cursorId = afterId || (beforeId as string);
     const { data: cursorRow, error: cursorErr } = await supabase
-      .from('tweets')
-      .select('created_at,tweet_id')
-      .eq('tweet_id', cursorId)
+      .from("tweets")
+      .select("created_at,tweet_id")
+      .eq("tweet_id", cursorId)
       .single();
     if (cursorErr) {
       // 사용자에게는 안전한 메시지를, 콘솔에는 상세 에러를 남김
       // eslint-disable-next-line no-console
-      console.error('[fetchTweets] cursor fetch error', cursorErr);
-      throw new Error('데이터를 불러오는 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+      console.error("[fetchTweets] cursor fetch error", cursorErr);
+      throw new Error(
+        "데이터를 불러오는 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요."
+      );
     }
 
     const createdAt = cursorRow.created_at;
@@ -102,12 +106,12 @@ export const fetchTweets = async ({
     if (afterId) {
       // 커서보다 더 최신: (c > C) OR (c = C AND t > T)
       query = query.or(
-        `created_at.gt.${createdAt},and(created_at.eq.${createdAt},tweet_id.gt.${tId})`,
+        `created_at.gt.${createdAt},and(created_at.eq.${createdAt},tweet_id.gt.${tId})`
       );
     } else {
       // 커서보다 더 오래된: (c < C) OR (c = C AND t < T)
       query = query.or(
-        `created_at.lt.${createdAt},and(created_at.eq.${createdAt},tweet_id.lt.${tId})`,
+        `created_at.lt.${createdAt},and(created_at.eq.${createdAt},tweet_id.lt.${tId})`
       );
     }
   }
@@ -118,21 +122,35 @@ export const fetchTweets = async ({
   const { data, error } = await query;
   if (error) {
     // eslint-disable-next-line no-console
-    console.error('[fetchTweets] supabase error', error);
-    throw new Error('데이터를 불러오는 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+    console.error("[fetchTweets] supabase error", error);
+    throw new Error(
+      "데이터를 불러오는 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요."
+    );
   }
 
-  const items: Tweet[] = (data ?? []).map((row) => ({
-    tweet_id: row.tweet_id,
-    author_name: row.author_name,
-    author_username: row.author_username,
-    author_profile_image: row.author_profile_image ?? null,
-    tweet_text: row.tweet_text,
-    images: row.images ?? null,
-    videos: row.videos ?? null,
-    created_at: new Date(row.created_at).toISOString(),
-    url: row.url,
-  }));
+  const items: Tweet[] = (data ?? []).map(
+    (row: {
+      tweet_id: string;
+      author_name: string;
+      author_username: string;
+      author_profile_image?: string | null;
+      tweet_text: string;
+      images: string[] | null;
+      videos: string[] | null;
+      created_at: string;
+      url: string;
+    }) => ({
+      tweet_id: row.tweet_id,
+      author_name: row.author_name,
+      author_username: row.author_username,
+      author_profile_image: row.author_profile_image ?? null,
+      tweet_text: row.tweet_text,
+      images: row.images ?? null,
+      videos: row.videos ?? null,
+      created_at: new Date(row.created_at).toISOString(),
+      url: row.url,
+    })
+  );
 
   const nextCursor = items.length > 0 ? items[items.length - 1].tweet_id : null;
   const prevCursor = items.length > 0 ? items[0].tweet_id : null;
@@ -146,5 +164,3 @@ export const fetchTweets = async ({
     },
   };
 };
-
-
