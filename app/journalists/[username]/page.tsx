@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, use } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { IoIosArrowBack } from "react-icons/io";
@@ -11,11 +11,15 @@ import { Card } from "@/components/ui/card";
 import { FeedPost, type FeedPostProps } from "@/components/feed-post";
 import { JournalistSkeletonList } from "@/components/search/journalist-skeleton-list";
 import { fetchTweets, type Tweet } from "@/lib/tweets";
+import {
+  fetchJournalistProfile,
+  type JournalistProfile,
+} from "@/lib/journalists";
 
 interface JournalistPageProps {
-  params: {
+  params: Promise<{
     username: string;
-  };
+  }>;
 }
 
 const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
@@ -68,12 +72,14 @@ const ProfileSkeleton = () => (
 
 export default function JournalistPage({ params }: JournalistPageProps) {
   const router = useRouter();
-  const username = decodeURIComponent(params.username);
+  const resolvedParams = use(params);
+  const username = decodeURIComponent(resolvedParams.username);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [activeMenu, setActiveMenu] = useState<
     "home" | "search" | "favorites" | "leagues" | null
   >("search");
   const [tweets, setTweets] = useState<Tweet[]>([]);
+  const [profile, setProfile] = useState<JournalistProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -92,11 +98,39 @@ export default function JournalistPage({ params }: JournalistPageProps) {
       try {
         setLoading(true);
         setError(null);
-        const { items } = await fetchTweets({
-          limit: 20,
-          journalists: [username],
-        });
-        setTweets(items);
+
+        // 프로필 정보와 트윗 목록을 병렬로 가져오기
+        const [profileData, tweetsData] = await Promise.all([
+          fetchJournalistProfile(username),
+          fetchTweets({
+            limit: 20,
+            journalists: [username],
+          }),
+        ]);
+
+        setTweets(tweetsData.items);
+
+        // 프로필 정보가 없어도 트윗 데이터가 있으면 프로필 생성
+        if (profileData) {
+          setProfile(profileData);
+        } else if (tweetsData.items.length > 0) {
+          // 트윗 데이터에서 프로필 정보 추출
+          const firstTweet = tweetsData.items[0];
+          const displayName =
+            (firstTweet.author_name?.split("@")[0]?.trim() as string) ||
+            firstTweet.author_name ||
+            username;
+
+          setProfile({
+            username,
+            name: displayName,
+            profileImage: firstTweet.author_profile_image || null,
+            credibility: (Math.floor(Math.random() * 3) + 1) as 1 | 2 | 3,
+            tweetCount: tweetsData.items.length, // 임시로 현재 로드된 수 사용
+          });
+        } else {
+          setError("기자 정보를 찾을 수 없습니다.");
+        }
       } catch (err) {
         console.error("[journalist page] fetch error", err);
         setError("기자 피드를 불러오는 중 문제가 발생했습니다.");
@@ -107,27 +141,24 @@ export default function JournalistPage({ params }: JournalistPageProps) {
     run();
   }, [username]);
 
-  const profile = useMemo(() => {
-    if (tweets.length === 0) {
+  // 프로필 정보가 없을 때 기본값
+  const displayProfile = useMemo(() => {
+    if (!profile) {
       return {
         name: username,
         avatar: "/placeholder.svg",
         credibility: 2 as 1 | 2 | 3,
+        tweetCount: 0,
       };
     }
-    const first = tweets[0];
-    const name =
-      (first.author_name?.split("@")[0]?.trim() as string) ||
-      first.author_name ||
-      username;
     return {
-      name,
+      name: profile.name,
       avatar:
-        normalizeTwitterMediaUrl(first.author_profile_image) ||
-        "/placeholder.svg",
-      credibility: (Math.floor(Math.random() * 3) + 1) as 1 | 2 | 3,
+        normalizeTwitterMediaUrl(profile.profileImage) || "/placeholder.svg",
+      credibility: profile.credibility,
+      tweetCount: profile.tweetCount,
     };
-  }, [tweets, username]);
+  }, [profile, username]);
 
   const mappedTweets: FeedPostProps[] = tweets.map((t) => ({
     journalist:
@@ -174,7 +205,7 @@ export default function JournalistPage({ params }: JournalistPageProps) {
                 </div>
               </button>
               <h1 className="text-3xl font-display font-bold tracking-wide text-balance">
-                {profile.name}
+                {displayProfile.name}
               </h1>
             </div>
           </div>
@@ -186,8 +217,8 @@ export default function JournalistPage({ params }: JournalistPageProps) {
               <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
                 <div className="flex items-start gap-4">
                   <Image
-                    src={profile.avatar}
-                    alt={profile.name}
+                    src={displayProfile.avatar}
+                    alt={displayProfile.name}
                     width={72}
                     height={72}
                     className="rounded-full"
@@ -195,15 +226,15 @@ export default function JournalistPage({ params }: JournalistPageProps) {
                   <div className="flex-1 min-w-0 space-y-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h2 className="text-2xl font-semibold text-card-foreground">
-                        {profile.name}
+                        {displayProfile.name}
                       </h2>
-                      <CredibilityIcon level={profile.credibility} />
+                      <CredibilityIcon level={displayProfile.credibility} />
                     </div>
                     <p className="text-muted-foreground">@{username}</p>
                     <div className="flex items-center gap-6 text-sm text-muted-foreground pt-2">
                       <div>
                         <span className="text-card-foreground font-semibold">
-                          {tweets.length}
+                          {displayProfile.tweetCount}
                         </span>{" "}
                         게시물
                       </div>
