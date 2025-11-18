@@ -127,7 +127,7 @@ export default function HomePage() {
                 const mapped: FeedPostProps = {
                   journalist: displayName,
                   handle: `@${t.author_username}`,
-                  credibility: 4,
+                  credibility: 2, // 기본값 (Tier 2)
                   content: t.tweet_text,
                   images: (t.images ?? [])
                     .map((u) => normalizeTwitterMediaUrl(u)!)

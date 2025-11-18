@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 export interface FeedPostProps {
   journalist: string;
   handle: string;
-  credibility: 3 | 4 | 5;
+  credibility: 1 | 2 | 3;
   content: string;
   images?: string[] | null;
   time: string;
@@ -146,15 +146,15 @@ export function FeedPost({
   );
 }
 
-function CredibilityIcon({ level }: { level: 3 | 4 | 5 }) {
+function CredibilityIcon({ level }: { level: 1 | 2 | 3 }) {
   const icons = {
-    5: "🌘", // 신뢰도 1단계(초승달)
-    4: "🌓", // 신뢰도 2단계(반달)
-    3: "🌕", // 신뢰도 3단계(보름달)
+    1: "🌕", // Tier 1 - 보름달 (제일 공신력 높음)
+    2: "🌓", // Tier 2 - 반달
+    3: "🌒", // Tier 3 - 초승달 (제일 공신력 낮음)
   };
 
   return (
-    <span className="text-lg leading-none" title={`Tier ${6 - level}`}>
+    <span className="text-lg leading-none" title={`Tier ${level}`}>
       {icons[level]}
     </span>
   );
