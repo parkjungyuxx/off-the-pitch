@@ -1,112 +1,44 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { IoIosArrowDown } from "react-icons/io";
 import { Sidebar } from "@/components/sidebar";
 import { FeedPost, type FeedPostProps } from "@/components/feed-post";
 import { LeagueSelector } from "@/components/league-selector";
-import { cn } from "@/lib/utils";
+import { fetchTweets, type Tweet } from "@/lib/tweets";
 
-// Mock data for transfer news
-const transferNews = [
-  {
-    id: 1,
-    journalist: "Fabrizio Romano",
-    handle: "@FabrizioRomano",
-    credibility: 5,
-    content:
-      "🚨 BREAKING: Manchester United are in advanced talks with Bayern Munich for Harry Kane. Deal worth €100M + add-ons. Here we go! 🔴",
-    time: "2m",
-    link: "#",
-    league: "Premier League",
-    avatar: "/journalist-interview.png",
-  },
-  {
-    id: 2,
-    journalist: "David Ornstein",
-    handle: "@David_Ornstein",
-    credibility: 5,
-    content:
-      "Exclusive: Arsenal closing in on Declan Rice signing. Fee agreed at £105M. Medical scheduled for next week. #AFC",
-    time: "15m",
-    link: "#",
-    league: "Premier League",
-    avatar: "/sports-reporter.jpg",
-  },
-  {
-    id: 3,
-    journalist: "Gianluca Di Marzio",
-    handle: "@DiMarzio",
-    credibility: 4,
-    content:
-      "Inter Milan have made their first offer for Marcus Thuram. Negotiations ongoing with Borussia Mönchengladbach. 🔵⚫",
-    time: "32m",
-    link: "#",
-    league: "Serie A",
-    avatar: "/italian-journalist.jpg",
-  },
-  {
-    id: 4,
-    journalist: "Matteo Moretto",
-    handle: "@MatteMoretto",
-    credibility: 4,
-    content:
-      "Barcelona are preparing a new proposal for Bernardo Silva. Manchester City want €80M. Talks continue.",
-    time: "1h",
-    link: "#",
-    league: "La Liga",
-    avatar: "/spanish-reporter.jpg",
-  },
-  {
-    id: 5,
-    journalist: "Florian Plettenberg",
-    handle: "@Plettigoal",
-    credibility: 4,
-    content:
-      "NEWS: Bayern Munich have submitted an official bid for Randal Kolo Muani. PSG considering the offer. 🔴",
-    time: "2h",
-    link: "#",
-    league: "Bundesliga",
-    avatar: "/german-journalist.jpg",
-  },
-  {
-    id: 6,
-    journalist: "Santi Aouna",
-    handle: "@Santi_J_FM",
-    credibility: 3,
-    content:
-      "PSG are interested in signing Rafael Leão this summer. First contacts made with AC Milan representatives.",
-    time: "3h",
-    link: "#",
-    league: "Ligue 1",
-    avatar: "/french-reporter.jpg",
-  },
-  {
-    id: 7,
-    journalist: "Kim Min-jae",
-    handle: "@KimMinjae_News",
-    credibility: 3,
-    content:
-      "Ulsan Hyundai FC set to sign Brazilian midfielder Vinicius Junior on loan from Gangwon FC. Deal expected to be finalized this week.",
-    time: "4h",
-    link: "#",
-    league: "K League",
-    avatar: "/korean-journalist.jpg",
-  },
-] satisfies Array<
-  FeedPostProps & {
-    id: number;
-    league: string;
+const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
+  if (!url) return undefined;
+  if (url.startsWith("https://pbs.twimg.com/media/") && !url.includes("?")) {
+    return `${url}?format=jpg&name=large`;
   }
->;
+  return url;
+};
+
+const formatRelativeTime = (iso: string): string => {
+  const now = Date.now();
+  const then = new Date(iso).getTime();
+  const diff = Math.max(0, Math.floor((now - then) / 1000));
+  if (diff < 60) return `${diff}s`;
+  const m = Math.floor(diff / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  return `${d}d`;
+};
 
 export default function HomePage() {
   const [selectedLeague, setSelectedLeague] = useState<string | null>(null);
   const [showLeagueSelector, setShowLeagueSelector] = useState(false);
-  const [favorites, setFavorites] = useState<number[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [activeMenu, setActiveMenu] = useState<
     "home" | "search" | "favorites" | "leagues" | null
   >("home");
+  const [tweets, setTweets] = useState<Tweet[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -117,11 +49,23 @@ export default function HomePage() {
     }
   }, [theme]);
 
-  const filteredNews = selectedLeague
-    ? transferNews.filter((news) => news.league === selectedLeague)
-    : transferNews;
+  useEffect(() => {
+    const run = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const { items } = await fetchTweets({ limit: 20 });
+        setTweets(items);
+      } catch {
+        setError("피드를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    run();
+  }, []);
 
-  const toggleFavorite = (id: number) => {
+  const toggleFavorite = (id: string) => {
     setFavorites((prev) =>
       prev.includes(id) ? prev.filter((favId) => favId !== id) : [...prev, id]
     );
@@ -147,20 +91,15 @@ export default function HomePage() {
 
       <main className="flex-1 ml-0 lg:ml-20">
         <div className="max-w-2xl mx-auto">
-          <div className="sticky top-0 z-10 backdrop-blur-xl bg-background/80 border-b border-border">
+          <div className="sticky top-0 z-10 backdrop-blur-xl bg-background/80">
             <div className="px-4 lg:px-6 py-6">
-              <h1 className="text-3xl font-display tracking-wide text-balance">
-                OFF THE PITCH
+              <h1 className="text-3xl font-display font-bold tracking-wide text-balance">
+                오프 더 피치
               </h1>
-              <div className="min-h-[20px]">
-                <p
-                  className={cn(
-                    "text-muted-foreground text-sm mt-1 transition-all",
-                    selectedLeague ? "opacity-100" : "opacity-0 invisible"
-                  )}
-                >
-                  {selectedLeague || "\u00A0"}
-                </p>
+              <div className="mt-1 flex justify-center">
+                <div className="flex items-center justify-center size-6 rounded-full border border-[rgb(57,57,57)] bg-card">
+                  <IoIosArrowDown className="size-4 text-white" />
+                </div>
               </div>
             </div>
           </div>
@@ -175,14 +114,40 @@ export default function HomePage() {
                 onClose={() => setShowLeagueSelector(false)}
               />
             )}
-            {filteredNews.map((post) => (
-              <FeedPost
-                key={post.id}
-                {...post}
-                isFavorited={favorites.includes(post.id)}
-                onToggleFavorite={() => toggleFavorite(post.id)}
-              />
-            ))}
+            {loading && (
+              <p className="text-muted-foreground text-sm">로딩 중…</p>
+            )}
+            {error && <p className="text-destructive text-sm">{error}</p>}
+            {!loading &&
+              !error &&
+              tweets.map((t) => {
+                const displayName =
+                  (t.author_name?.split("@")[0]?.trim() as string) ||
+                  t.author_name;
+                const mapped: FeedPostProps = {
+                  journalist: displayName,
+                  handle: `@${t.author_username}`,
+                  credibility: 2, // 기본값 (Tier 2)
+                  content: t.tweet_text,
+                  images: (t.images ?? [])
+                    .map((u) => normalizeTwitterMediaUrl(u)!)
+                    .filter(Boolean),
+                  time: formatRelativeTime(t.created_at),
+                  link: t.url,
+                  avatar:
+                    normalizeTwitterMediaUrl(t.author_profile_image) ||
+                    "/placeholder.svg",
+                };
+                const id = t.tweet_id;
+                return (
+                  <FeedPost
+                    key={id}
+                    {...mapped}
+                    isFavorited={favorites.includes(id)}
+                    onToggleFavorite={() => toggleFavorite(id)}
+                  />
+                );
+              })}
           </div>
         </div>
       </main>
