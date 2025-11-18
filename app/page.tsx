@@ -9,7 +9,6 @@ import { fetchTweets, type Tweet } from "@/lib/tweets";
 
 const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
   if (!url) return undefined;
-  // pbs.twimg.com 미디어 URL이면서 format 쿼리가 없으면 기본값을 추가합니다.
   if (url.startsWith("https://pbs.twimg.com/media/") && !url.includes("?")) {
     return `${url}?format=jpg&name=large`;
   }
@@ -128,7 +127,7 @@ export default function HomePage() {
                 const mapped: FeedPostProps = {
                   journalist: displayName,
                   handle: `@${t.author_username}`,
-                  credibility: 4, // 기본값
+                  credibility: 4,
                   content: t.tweet_text,
                   images: (t.images ?? [])
                     .map((u) => normalizeTwitterMediaUrl(u)!)
