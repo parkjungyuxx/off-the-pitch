@@ -1,23 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import Image from "next/image";
+
 import { Sidebar } from "@/components/sidebar";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { JournalistSkeletonList } from "@/components/search/journalist-skeleton-list";
-import { fetchTweets, type Tweet } from "@/lib/tweets";
+import { useJournalistSearch } from "@/hooks/use-journalist-search";
 import { cn } from "@/lib/utils";
-
-const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
-  if (!url) return undefined;
-  if (url.startsWith("https://pbs.twimg.com/media/") && !url.includes("?")) {
-    return `${url}?format=jpg&name=large`;
-  }
-  return url;
-};
 
 function CredibilityIcon({ level }: { level: 1 | 2 | 3 }) {
   const icons = {
@@ -33,22 +26,21 @@ function CredibilityIcon({ level }: { level: 1 | 2 | 3 }) {
   );
 }
 
-interface Journalist {
-  name: string;
-  username: string;
-  profileImage: string | null;
-  credibility: 1 | 2 | 3;
-}
-
 export default function SearchPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [allJournalists, setAllJournalists] = useState<Journalist[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [favorites, setFavorites] = useState<string[]>([]);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [activeMenu, setActiveMenu] = useState<
     "home" | "search" | "favorites" | "leagues" | null
   >("search");
+
+  const {
+    searchQuery,
+    setSearchQuery,
+    filteredJournalists,
+    loading,
+    error,
+    favorites,
+    toggleFavorite,
+  } = useJournalistSearch();
 
   useEffect(() => {
     const root = document.documentElement;
@@ -58,61 +50,6 @@ export default function SearchPage() {
       root.classList.remove("light");
     }
   }, [theme]);
-
-  useEffect(() => {
-    const fetchJournalists = async () => {
-      try {
-        setLoading(true);
-        // 충분한 데이터를 가져와서 고유한 기자 목록 추출
-        const { items } = await fetchTweets({ limit: 100 });
-
-        const journalistMap = new Map<string, Journalist>();
-
-        items.forEach((tweet: Tweet) => {
-          const username = tweet.author_username;
-          if (!journalistMap.has(username)) {
-            const displayName =
-              (tweet.author_name?.split("@")[0]?.trim() as string) ||
-              tweet.author_name;
-
-            journalistMap.set(username, {
-              name: displayName,
-              username: username,
-              profileImage: tweet.author_profile_image || null,
-              // 랜덤 신뢰도 (나중에 DB에서 가져올 수 있음)
-              credibility: (Math.floor(Math.random() * 3) + 1) as 1 | 2 | 3,
-            });
-          }
-        });
-
-        setAllJournalists(Array.from(journalistMap.values()));
-      } catch (error) {
-        console.error("기자 목록을 불러오는 중 오류:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchJournalists();
-  }, []);
-
-  // 검색 쿼리로 기자 필터링
-  const filteredJournalists = searchQuery.trim()
-    ? allJournalists.filter(
-        (journalist) =>
-          journalist.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          journalist.username.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : // 검색 쿼리가 없으면 랜덤으로 일부만 표시
-      allJournalists.sort(() => Math.random() - 0.5).slice(0, 10);
-
-  const toggleFavorite = (username: string) => {
-    setFavorites((prev) =>
-      prev.includes(username)
-        ? prev.filter((fav) => fav !== username)
-        : [...prev, username]
-    );
-  };
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -153,6 +90,10 @@ export default function SearchPage() {
                 {searchQuery.trim() ? "검색 결과" : "추천 기자"}
               </h2>
 
+              {error && !loading && (
+                <p className="text-destructive text-sm mb-3">{error}</p>
+              )}
+
               {loading ? (
                 <JournalistSkeletonList />
               ) : filteredJournalists.length === 0 ? (
@@ -170,11 +111,7 @@ export default function SearchPage() {
                       >
                         <div className="shrink-0">
                           <Image
-                            src={
-                              normalizeTwitterMediaUrl(
-                                journalist.profileImage
-                              ) || "/placeholder.svg"
-                            }
+                            src={journalist.profileImage || "/placeholder.svg"}
                             alt={journalist.name}
                             width={56}
                             height={56}
