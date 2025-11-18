@@ -270,6 +270,7 @@ export default function JournalistPage({ params }: JournalistPageProps) {
                     {...post}
                     isFavorited={favorites.includes(id)}
                     onToggleFavorite={() => toggleFavorite(id)}
+                    showFollowButton={false}
                   />
                 );
               })
