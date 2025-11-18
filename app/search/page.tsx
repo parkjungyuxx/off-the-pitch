@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/sidebar";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { JournalistSkeletonList } from "@/components/search/journalist-skeleton-list";
 import { fetchTweets, type Tweet } from "@/lib/tweets";
 import { cn } from "@/lib/utils";
 
@@ -153,7 +154,7 @@ export default function SearchPage() {
               </h2>
 
               {loading ? (
-                <p className="text-muted-foreground text-sm">로딩 중…</p>
+                <JournalistSkeletonList />
               ) : filteredJournalists.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
                   검색 결과가 없습니다.
