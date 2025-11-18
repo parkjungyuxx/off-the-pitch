@@ -19,6 +19,7 @@ export interface FeedPostProps {
   avatar: string;
   isFavorited?: boolean;
   onToggleFavorite?: () => void;
+  showFollowButton?: boolean;
 }
 
 export function FeedPost({
@@ -32,6 +33,7 @@ export function FeedPost({
   avatar,
   isFavorited = false,
   onToggleFavorite,
+  showFollowButton = true,
 }: FeedPostProps) {
   const [isTranslated, setIsTranslated] = useState(false);
   const [failedImageIdx, setFailedImageIdx] = useState<Set<number>>(new Set());
@@ -62,7 +64,7 @@ export function FeedPost({
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <span className="text-muted-foreground text-sm">{time}</span>
-              {onToggleFavorite && (
+              {showFollowButton && onToggleFavorite && (
                 <Button
                   onClick={(e) => {
                     e.stopPropagation();
