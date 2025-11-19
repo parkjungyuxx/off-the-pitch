@@ -61,7 +61,7 @@ export function FeedPost({
             <div className="flex items-center gap-2 min-w-0 flex-wrap">
               <Link
                 href={`/journalists/${username}`}
-                className="font-semibold text-card-foreground hover:underline transition-all"
+                className="font-semibold text-card-foreground hover:scale-[1.02] transition-transform inline-block"
                 onClick={(e) => e.stopPropagation()}
               >
                 {journalist}
@@ -69,7 +69,7 @@ export function FeedPost({
               <CredibilityIcon level={credibility} />
               <Link
                 href={`/journalists/${username}`}
-                className="text-muted-foreground text-sm hover:underline transition-all"
+                className="text-muted-foreground text-sm hover:scale-[1.03] transition-transform inline-block"
                 onClick={(e) => e.stopPropagation()}
               >
                 {handle}
