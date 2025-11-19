@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { IoIosArrowDown } from "react-icons/io";
 import { Sidebar } from "@/components/sidebar";
 import { FeedPost, type FeedPostProps } from "@/components/feed-post";
-import { LeagueSelector } from "@/components/league-selector";
 import { fetchTweets, type Tweet } from "@/lib/tweets";
 
 const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
@@ -29,8 +28,6 @@ const formatRelativeTime = (iso: string): string => {
 };
 
 export default function HomePage() {
-  const [selectedLeague, setSelectedLeague] = useState<string | null>(null);
-  const [showLeagueSelector, setShowLeagueSelector] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [activeMenu, setActiveMenu] = useState<
@@ -77,14 +74,8 @@ export default function HomePage() {
         activeMenu={activeMenu}
         onMenuClick={(menu) => {
           setActiveMenu(menu);
-          if (menu === "leagues") {
-            setShowLeagueSelector(!showLeagueSelector);
-          } else {
-            setShowLeagueSelector(false);
-          }
         }}
-        selectedLeague={selectedLeague}
-        showLeagueSelector={showLeagueSelector}
+        selectedLeague={null}
         theme={theme}
         onThemeChange={setTheme}
       />
@@ -105,15 +96,6 @@ export default function HomePage() {
           </div>
 
           <div className="p-4 lg:p-6 space-y-4">
-            {showLeagueSelector && (
-              <LeagueSelector
-                selectedLeague={selectedLeague}
-                onSelectLeague={(league) => {
-                  setSelectedLeague(league);
-                }}
-                onClose={() => setShowLeagueSelector(false)}
-              />
-            )}
             {loading && (
               <p className="text-muted-foreground text-sm">로딩 중…</p>
             )}
