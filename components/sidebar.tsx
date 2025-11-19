@@ -107,9 +107,12 @@ export function Sidebar({
                 "bg-sidebar-accent hover:bg-sidebar-accent"
             )}
             onClick={() => onMenuClick("leagues")}
+            asChild
           >
-            <BsTrophy className="size-7" />
-            <span className="sr-only">Football Leagues</span>
+            <Link href="/leagues">
+              <BsTrophy className="size-7" />
+              <span className="sr-only">Football Leagues</span>
+            </Link>
           </Button>
         </nav>
 
@@ -219,9 +222,12 @@ export function Sidebar({
               "bg-sidebar-accent hover:bg-sidebar-accent"
           )}
           onClick={() => onMenuClick("leagues")}
+          asChild
         >
-          <BsTrophy className="size-7" />
-          <span className="sr-only">Football Leagues</span>
+          <Link href="/leagues">
+            <BsTrophy className="size-7" />
+            <span className="sr-only">Football Leagues</span>
+          </Link>
         </Button>
 
         <Popover>

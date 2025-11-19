@@ -38,29 +38,42 @@ export function FeedPost({
   const [isTranslated, setIsTranslated] = useState(false);
   const [failedImageIdx, setFailedImageIdx] = useState<Set<number>>(new Set());
 
+  // handle에서 @를 제거한 username 추출
+  const username = handle.replace(/^@/, "");
+
   return (
     <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card hover:bg-card/80 transition-all cursor-pointer group shadow-lg hover:shadow-xl">
       <div className="flex gap-4">
         {/* 프로필 이미지 */}
-        <div className="shrink-0">
+        <Link href={`/journalists/${username}`} className="shrink-0">
           <Image
             src={avatar || "/placeholder.svg"}
             alt={journalist}
             width={48}
             height={48}
-            className="rounded-full"
+            className="rounded-full hover:opacity-80 transition-opacity"
           />
-        </div>
+        </Link>
 
         {/* 본문 영역 */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="flex items-center gap-2 min-w-0 flex-wrap">
-              <span className="font-semibold text-card-foreground">
+              <Link
+                href={`/journalists/${username}`}
+                className="font-semibold text-card-foreground hover:scale-[1.02] transition-transform inline-block"
+                onClick={(e) => e.stopPropagation()}
+              >
                 {journalist}
-              </span>
+              </Link>
               <CredibilityIcon level={credibility} />
-              <span className="text-muted-foreground text-sm">{handle}</span>
+              <Link
+                href={`/journalists/${username}`}
+                className="text-muted-foreground text-sm hover:scale-[1.03] transition-transform inline-block"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {handle}
+              </Link>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <span className="text-muted-foreground text-sm">{time}</span>
