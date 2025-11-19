@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,8 +10,16 @@ import { createClient } from "@/lib/supabase-client";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const errorParam = searchParams.get("error");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => {
+    if (!errorParam) return null;
+    if (errorParam === "config") {
+      return "환경 변수가 설정되지 않았습니다. Supabase 설정을 확인해주세요.";
+    }
+    return decodeURIComponent(errorParam);
+  });
   const supabase = createClient();
 
   useEffect(() => {
