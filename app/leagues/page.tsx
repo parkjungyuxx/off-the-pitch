@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { LeagueSelector } from "@/components/league-selector";
 import { FeedPost, type FeedPostProps } from "@/components/feed-post";
@@ -25,6 +25,115 @@ const formatRelativeTime = (iso: string): string => {
   if (h < 24) return `${h}h`;
   const d = Math.floor(h / 24);
   return `${d}d`;
+};
+
+// 리그별 팀 이름 목록
+const LEAGUE_TEAMS: Record<string, string[]> = {
+  "Premier League": [
+    "Chelsea",
+    "Tottenham",
+    "Arsenal",
+    "Manchester United",
+    "Manchester City",
+    "Liverpool",
+    "Newcastle",
+    "Brighton",
+    "West Ham",
+    "Aston Villa",
+    "Crystal Palace",
+    "Fulham",
+    "Brentford",
+    "Wolves",
+    "Everton",
+    "Nottingham Forest",
+    "Burnley",
+    "Sheffield United",
+    "Luton",
+    "Bournemouth",
+  ],
+  "La Liga": [
+    "Real Madrid",
+    "Barcelona",
+    "Atletico Madrid",
+    "Sevilla",
+    "Real Sociedad",
+    "Villarreal",
+    "Real Betis",
+    "Valencia",
+    "Athletic Bilbao",
+    "Getafe",
+    "Osasuna",
+    "Rayo Vallecano",
+    "Celta Vigo",
+    "Mallorca",
+    "Las Palmas",
+    "Alaves",
+    "Cadiz",
+    "Granada",
+    "Almeria",
+  ],
+  "Serie A": [
+    "Juventus",
+    "AC Milan",
+    "Inter Milan",
+    "Napoli",
+    "Atalanta",
+    "Roma",
+    "Lazio",
+    "Fiorentina",
+    "Bologna",
+    "Torino",
+    "Monza",
+    "Genoa",
+    "Lecce",
+    "Frosinone",
+    "Udinese",
+    "Sassuolo",
+    "Cagliari",
+    "Verona",
+    "Empoli",
+    "Salernitana",
+  ],
+  "Bundesliga": [
+    "Bayern Munich",
+    "Borussia Dortmund",
+    "RB Leipzig",
+    "Bayer Leverkusen",
+    "Eintracht Frankfurt",
+    "Freiburg",
+    "Hoffenheim",
+    "Wolfsburg",
+    "Augsburg",
+    "Werder Bremen",
+    "Bochum",
+    "Union Berlin",
+    "Mainz",
+    "Cologne",
+    "Darmstadt",
+    "Heidenheim",
+    "Gladbach",
+    "Stuttgart",
+  ],
+  "Ligue 1": [
+    "PSG",
+    "Marseille",
+    "Monaco",
+    "Lyon",
+    "Lille",
+    "Nice",
+    "Lens",
+    "Rennes",
+    "Reims",
+    "Toulouse",
+    "Montpellier",
+    "Strasbourg",
+    "Nantes",
+    "Brest",
+    "Le Havre",
+    "Metz",
+    "Lorient",
+    "Clermont",
+  ],
 };
 
 export default function LeaguesPage() {
@@ -52,7 +161,8 @@ export default function LeaguesPage() {
       try {
         setLoading(true);
         setError(null);
-        const { items } = await fetchTweets({ limit: 20 });
+        // 리그 선택 여부와 관계없이 모든 트윗을 가져옴 (필터링은 클라이언트에서)
+        const { items } = await fetchTweets({ limit: 100 });
         setTweets(items);
       } catch {
         setError("피드를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
@@ -61,13 +171,34 @@ export default function LeaguesPage() {
       }
     };
     run();
-  }, [selectedLeague]);
+  }, []);
 
   const toggleFavorite = (id: string) => {
     setFavorites((prev) =>
       prev.includes(id) ? prev.filter((favId) => favId !== id) : [...prev, id]
     );
   };
+
+  // 리그 선택에 따라 트윗 필터링
+  const filteredTweets = useMemo(() => {
+    if (!selectedLeague) {
+      // 리그가 선택되지 않았으면 모든 트윗 반환
+      return tweets;
+    }
+
+    const teamNames = LEAGUE_TEAMS[selectedLeague] || [];
+    if (teamNames.length === 0) {
+      return tweets;
+    }
+
+    // 트윗 본문에서 해당 리그의 팀 이름이 포함된 트윗만 필터링
+    return tweets.filter((tweet) => {
+      const tweetText = tweet.tweet_text.toLowerCase();
+      return teamNames.some((team) =>
+        tweetText.includes(team.toLowerCase())
+      );
+    });
+  }, [tweets, selectedLeague]);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -106,7 +237,17 @@ export default function LeaguesPage() {
             {error && <p className="text-destructive text-sm">{error}</p>}
             {!loading &&
               !error &&
-              tweets.map((t) => {
+              filteredTweets.length === 0 && (
+                <p className="text-muted-foreground text-sm text-center py-8">
+                  {selectedLeague
+                    ? "해당 리그의 피드가 없습니다."
+                    : "피드가 없습니다."}
+                </p>
+              )}
+            {!loading &&
+              !error &&
+              filteredTweets.length > 0 &&
+              filteredTweets.map((t) => {
                 const displayName =
                   (t.author_name?.split("@")[0]?.trim() as string) ||
                   t.author_name;
