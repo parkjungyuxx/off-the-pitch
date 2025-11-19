@@ -105,7 +105,7 @@ export default function LoginPage() {
         </div>
 
         <p className="mt-6 text-xs text-muted-foreground text-center">
-          로그인하면 팔로우한 기자들의 피드를 저장할 수 있습니다.
+          원하는 기자들의 이적 소식을 한 곳에서 — OFF THE PITCH
         </p>
       </Card>
     </div>
