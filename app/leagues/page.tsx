@@ -186,12 +186,31 @@ export default function LeaguesPage() {
       return tweets;
     }
 
+    // Others를 선택한 경우: 다른 모든 주요 리그 팀들을 제외
+    if (selectedLeague === "Others") {
+      // 모든 주요 리그의 팀 이름 수집
+      const allMajorLeagueTeams: string[] = [];
+      Object.keys(LEAGUE_TEAMS).forEach((league) => {
+        if (league !== "Others") {
+          allMajorLeagueTeams.push(...LEAGUE_TEAMS[league]);
+        }
+      });
+
+      // 주요 리그 팀 이름이 포함되지 않은 트윗만 반환
+      return tweets.filter((tweet) => {
+        const tweetText = tweet.tweet_text.toLowerCase();
+        return !allMajorLeagueTeams.some((team) =>
+          tweetText.includes(team.toLowerCase())
+        );
+      });
+    }
+
+    // 특정 리그를 선택한 경우: 해당 리그의 팀 이름이 포함된 트윗만 필터링
     const teamNames = LEAGUE_TEAMS[selectedLeague] || [];
     if (teamNames.length === 0) {
       return tweets;
     }
 
-    // 트윗 본문에서 해당 리그의 팀 이름이 포함된 트윗만 필터링
     return tweets.filter((tweet) => {
       const tweetText = tweet.tweet_text.toLowerCase();
       return teamNames.some((team) =>
