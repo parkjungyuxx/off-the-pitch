@@ -3,7 +3,29 @@
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { LeagueSelector } from "@/components/league-selector";
-import { Card } from "@/components/ui/card";
+import { FeedPost, type FeedPostProps } from "@/components/feed-post";
+import { fetchTweets, type Tweet } from "@/lib/tweets";
+
+const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
+  if (!url) return undefined;
+  if (url.startsWith("https://pbs.twimg.com/media/") && !url.includes("?")) {
+    return `${url}?format=jpg&name=large`;
+  }
+  return url;
+};
+
+const formatRelativeTime = (iso: string): string => {
+  const now = Date.now();
+  const then = new Date(iso).getTime();
+  const diff = Math.max(0, Math.floor((now - then) / 1000));
+  if (diff < 60) return `${diff}s`;
+  const m = Math.floor(diff / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  return `${d}d`;
+};
 
 export default function LeaguesPage() {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
@@ -11,6 +33,10 @@ export default function LeaguesPage() {
   const [activeMenu, setActiveMenu] = useState<
     "home" | "search" | "favorites" | "leagues" | null
   >("leagues");
+  const [tweets, setTweets] = useState<Tweet[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [favorites, setFavorites] = useState<string[]>([]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -20,6 +46,28 @@ export default function LeaguesPage() {
       root.classList.remove("light");
     }
   }, [theme]);
+
+  useEffect(() => {
+    const run = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const { items } = await fetchTweets({ limit: 20 });
+        setTweets(items);
+      } catch {
+        setError("피드를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    run();
+  }, [selectedLeague]);
+
+  const toggleFavorite = (id: string) => {
+    setFavorites((prev) =>
+      prev.includes(id) ? prev.filter((favId) => favId !== id) : [...prev, id]
+    );
+  };
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -43,7 +91,7 @@ export default function LeaguesPage() {
             </div>
           </div>
 
-          <div className="p-4 lg:p-6">
+          <div className="p-4 lg:p-6 space-y-4">
             <LeagueSelector
               selectedLeague={selectedLeague}
               onSelectLeague={(league) => {
@@ -51,6 +99,41 @@ export default function LeaguesPage() {
               }}
               onClose={() => {}}
             />
+
+            {loading && (
+              <p className="text-muted-foreground text-sm">로딩 중…</p>
+            )}
+            {error && <p className="text-destructive text-sm">{error}</p>}
+            {!loading &&
+              !error &&
+              tweets.map((t) => {
+                const displayName =
+                  (t.author_name?.split("@")[0]?.trim() as string) ||
+                  t.author_name;
+                const mapped: FeedPostProps = {
+                  journalist: displayName,
+                  handle: `@${t.author_username}`,
+                  credibility: 2, // 기본값 (Tier 2)
+                  content: t.tweet_text,
+                  images: (t.images ?? [])
+                    .map((u) => normalizeTwitterMediaUrl(u)!)
+                    .filter(Boolean),
+                  time: formatRelativeTime(t.created_at),
+                  link: t.url,
+                  avatar:
+                    normalizeTwitterMediaUrl(t.author_profile_image) ||
+                    "/placeholder.svg",
+                };
+                const id = t.tweet_id;
+                return (
+                  <FeedPost
+                    key={id}
+                    {...mapped}
+                    isFavorited={favorites.includes(id)}
+                    onToggleFavorite={() => toggleFavorite(id)}
+                  />
+                );
+              })}
           </div>
         </div>
       </main>
