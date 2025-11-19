@@ -1,11 +1,53 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FcGoogle } from "react-icons/fc";
+import { createClient } from "@/lib/supabase-client";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session) {
+        router.push("/");
+      }
+    };
+    checkSession();
+  }, [router, supabase]);
+
+  const handleSocialLogin = async (provider: "google" | "kakao") => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+      }
+    } catch {
+      setError("로그인 중 오류가 발생했습니다.");
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-background items-center justify-center p-4">
       <Card className="w-full max-w-md p-8 rounded-2xl border border-[rgb(57,57,57)] bg-card">
@@ -24,13 +66,27 @@ export default function LoginPage() {
           </h1>
         </div>
 
+        {error && (
+          <div className="mb-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20">
+            <p className="text-destructive text-sm text-center">{error}</p>
+          </div>
+        )}
+
         <div className="space-y-3">
-          <Button className="w-full h-12 rounded-2xl bg-white text-black hover:bg-white/90 font-medium flex items-center justify-center relative">
+          <Button
+            onClick={() => handleSocialLogin("google")}
+            disabled={loading}
+            className="w-full h-12 rounded-2xl bg-white text-black hover:bg-white/90 font-medium flex items-center justify-center relative"
+          >
             <FcGoogle className="w-5 h-5 absolute left-4" />
-            <span>Google로 로그인</span>
+            <span>{loading ? "로딩 중..." : "Google로 로그인"}</span>
           </Button>
 
-          <Button className="w-full h-12 rounded-2xl bg-[#FEE500] text-black hover:bg-[#FEE500]/90 font-medium flex items-center justify-center relative">
+          <Button
+            onClick={() => handleSocialLogin("kakao")}
+            disabled={loading}
+            className="w-full h-12 rounded-2xl bg-[#FEE500] text-black hover:bg-[#FEE500]/90 font-medium flex items-center justify-center relative"
+          >
             <svg
               width="20"
               height="20"
@@ -44,9 +100,13 @@ export default function LoginPage() {
                 fill="#000000"
               />
             </svg>
-            <span>카카오로 로그인</span>
+            <span>{loading ? "로딩 중..." : "카카오로 로그인"}</span>
           </Button>
         </div>
+
+        <p className="mt-6 text-xs text-muted-foreground text-center">
+          로그인하면 팔로우한 기자들의 피드를 저장할 수 있습니다.
+        </p>
       </Card>
     </div>
   );
