@@ -76,9 +76,12 @@ export function Sidebar({
                 "bg-sidebar-accent hover:bg-sidebar-accent"
             )}
             onClick={() => onMenuClick("search")}
+            asChild
           >
-            <Search className="size-7" />
-            <span className="sr-only">Search</span>
+            <Link href="/search">
+              <Search className="size-7" />
+              <span className="sr-only">Search</span>
+            </Link>
           </Button>
 
           <Button
@@ -185,9 +188,12 @@ export function Sidebar({
               "bg-sidebar-accent hover:bg-sidebar-accent"
           )}
           onClick={() => onMenuClick("search")}
+          asChild
         >
-          <Search className="size-7" />
-          <span className="sr-only">Search</span>
+          <Link href="/search">
+            <Search className="size-7" />
+            <span className="sr-only">Search</span>
+          </Link>
         </Button>
 
         <Button
