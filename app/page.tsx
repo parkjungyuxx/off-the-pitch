@@ -199,23 +199,26 @@ export default function HomePage() {
             </div>
           </div>
 
-          {showLeagueSelector && (
-            <div
-              id="league-selector"
-              className="px-4 lg:px-6"
-              aria-hidden={!showLeagueSelector}
-            >
-              <div className="py-2">
-                <LeagueSelector
-                  selectedLeague={selectedLeague}
-                  onSelectLeague={(league) => {
-                    setSelectedLeague(league);
-                    setShowLeagueSelector(false);
-                  }}
-                />
-              </div>
+          <div
+            id="league-selector"
+            className={cn(
+              "px-4 lg:px-6 transition-all duration-300 ease-out overflow-hidden origin-top",
+              showLeagueSelector
+                ? "max-h-[520px] opacity-100 translate-y-0"
+                : "max-h-0 opacity-0 -translate-y-3 pointer-events-none"
+            )}
+            aria-hidden={!showLeagueSelector}
+          >
+            <div className="py-2">
+              <LeagueSelector
+                selectedLeague={selectedLeague}
+                onSelectLeague={(league) => {
+                  setSelectedLeague(league);
+                  setShowLeagueSelector(false);
+                }}
+              />
             </div>
-          )}
+          </div>
 
           <div className="p-4 lg:p-6 space-y-4">
             {loading && (
