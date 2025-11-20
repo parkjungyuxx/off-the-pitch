@@ -1,18 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { IoIosArrowDown } from "react-icons/io";
+import Image from "next/image";
 import { Sidebar } from "@/components/sidebar";
 import { FeedPost, type FeedPostProps } from "@/components/feed-post";
-import { fetchTweets, type Tweet } from "@/lib/tweets";
+import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase-client";
+import { cn } from "@/lib/utils";
+import { useDragScroll } from "@/hooks/use-drag-scroll";
 import {
   followJournalist,
   unfollowJournalist,
   getFollowedJournalists,
-  isFollowingJournalist,
 } from "@/lib/follows";
+import { fetchTweets, type Tweet } from "@/lib/tweets";
 
 const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
   if (!url) return undefined;
@@ -35,20 +37,27 @@ const formatRelativeTime = (iso: string): string => {
   return `${d}d`;
 };
 
-export default function HomePage() {
+export default function FavoritesPage() {
   const router = useRouter();
   const supabase = createClient();
   const [followedJournalists, setFollowedJournalists] = useState<Set<string>>(
     new Set()
   );
+  const [followedJournalistsList, setFollowedJournalistsList] = useState<
+    Array<{ handle: string; name: string; avatar: string }>
+  >([]);
+  const [selectedJournalist, setSelectedJournalist] = useState<string | null>(
+    null
+  );
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [activeMenu, setActiveMenu] = useState<
     "home" | "search" | "favorites" | "leagues" | null
-  >("home");
+  >("favorites");
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
+  const scrollRef = useDragScroll<HTMLDivElement>();
 
   useEffect(() => {
     const checkSession = async () => {
@@ -80,26 +89,62 @@ export default function HomePage() {
   }, [theme]);
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadFollowedJournalistsTweets = async () => {
       try {
         setLoading(true);
         setError(null);
-        
-        // 트윗과 팔로우한 기자 목록을 동시에 로드
-        const [tweetsData, followedData] = await Promise.all([
-          fetchTweets({ limit: 20 }),
-          getFollowedJournalists(),
-        ]);
+
+        // 팔로우한 기자 목록 가져오기
+        const followedData = await getFollowedJournalists();
+        if (!followedData.data || followedData.data.length === 0) {
+          setFollowedJournalists(new Set());
+          setTweets([]);
+          return;
+        }
+
+        const handles = new Set(
+          followedData.data.map((f) => f.journalist_handle)
+        );
+        setFollowedJournalists(handles);
+
+        // 팔로우한 기자들의 username 추출 (@ 제거)
+        const journalistUsernames = followedData.data.map((f) =>
+          f.journalist_handle.replace(/^@/, "")
+        );
+
+        // 팔로우한 기자들의 트윗만 가져오기
+        const tweetsData = await fetchTweets({
+          limit: 50,
+          journalists: journalistUsernames,
+        });
 
         setTweets(tweetsData.items);
 
-        if (followedData.data) {
-          const handles = new Set(
-            followedData.data.map((f) => f.journalist_handle)
+        // 기자별 프로필 이미지 추출 (트윗에서 가져오기)
+        const journalistMap = new Map<
+          string,
+          { handle: string; name: string; avatar: string }
+        >();
+
+        followedData.data.forEach((f) => {
+          const handle = f.journalist_handle;
+          const username = handle.replace(/^@/, "");
+          // 해당 기자의 첫 번째 트윗에서 프로필 이미지 가져오기
+          const journalistTweet = tweetsData.items.find(
+            (t) => t.author_username === username
           );
-          setFollowedJournalists(handles);
-        }
-      } catch {
+          journalistMap.set(handle, {
+            handle,
+            name: f.journalist_name,
+            avatar:
+              normalizeTwitterMediaUrl(journalistTweet?.author_profile_image) ||
+              `/api/placeholder/48/48`,
+          });
+        });
+
+        setFollowedJournalistsList(Array.from(journalistMap.values()));
+      } catch (err) {
+        console.error("Load followed journalists tweets error:", err);
         setError("피드를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
       } finally {
         setLoading(false);
@@ -107,13 +152,21 @@ export default function HomePage() {
     };
 
     if (!checkingAuth) {
-      loadData();
+      loadFollowedJournalistsTweets();
     }
   }, [checkingAuth]);
 
+  // 선택된 기자에 따라 트윗 필터링
+  const filteredTweets = useMemo(() => {
+    if (!selectedJournalist) {
+      return tweets;
+    }
+    return tweets.filter((t) => `@${t.author_username}` === selectedJournalist);
+  }, [tweets, selectedJournalist]);
+
   const toggleFavorite = async (handle: string, journalistName: string) => {
     const isFollowing = followedJournalists.has(handle);
-    
+
     // 낙관적 업데이트 (UI 먼저 업데이트)
     setFollowedJournalists((prev) => {
       const next = new Set(prev);
@@ -143,7 +196,6 @@ export default function HomePage() {
       });
       console.error("Toggle follow error:", result.error);
       setError(`팔로우 실패: ${result.error}`);
-      // 에러 메시지 3초 후 자동 제거
       setTimeout(() => setError(null), 3000);
     }
   };
@@ -173,15 +225,50 @@ export default function HomePage() {
           <div className="sticky top-0 z-10 backdrop-blur-xl bg-background/80">
             <div className="px-4 lg:px-6 py-6">
               <h1 className="text-3xl font-display font-bold tracking-wide text-balance">
-                오프 더 피치
+                좋아요
               </h1>
-              <div className="mt-1 flex justify-center">
-                <div className="flex items-center justify-center size-6 rounded-full border border-[rgb(57,57,57)] bg-card">
-                  <IoIosArrowDown className="size-4 text-white" />
-                </div>
-              </div>
             </div>
           </div>
+
+          {followedJournalistsList.length > 0 && (
+            <div className="px-4 lg:px-6 pt-4 pb-2">
+              <div
+                ref={scrollRef}
+                className="flex items-center gap-3 overflow-x-auto scrollbar-hide"
+              >
+                {followedJournalistsList.map((journalist) => {
+                  const isSelected = selectedJournalist === journalist.handle;
+                  return (
+                    <button
+                      key={journalist.handle}
+                      onClick={() =>
+                        setSelectedJournalist(
+                          isSelected ? null : journalist.handle
+                        )
+                      }
+                      onDragStart={(e) => e.preventDefault()}
+                      className={cn(
+                        "shrink-0 rounded-full border-2 transition-all overflow-hidden select-none",
+                        isSelected
+                          ? "border-primary size-14"
+                          : "border-border size-12 hover:border-white/20"
+                      )}
+                      title={journalist.name}
+                    >
+                      <Image
+                        src={journalist.avatar}
+                        alt={journalist.name}
+                        width={isSelected ? 56 : 48}
+                        height={isSelected ? 56 : 48}
+                        className="w-full h-full object-cover pointer-events-none"
+                        draggable={false}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="p-4 lg:p-6 space-y-4">
             {loading && (
@@ -190,7 +277,36 @@ export default function HomePage() {
             {error && <p className="text-destructive text-sm">{error}</p>}
             {!loading &&
               !error &&
-              tweets.map((t) => {
+              filteredTweets.length === 0 &&
+              tweets.length === 0 && (
+                <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <p className="text-muted-foreground text-sm text-center">
+                      팔로우한 기자가 없습니다.
+                      <br />
+                      기자를 팔로우하면 여기에 트윗이 표시됩니다.
+                    </p>
+                  </div>
+                </Card>
+              )}
+            {!loading &&
+              !error &&
+              filteredTweets.length === 0 &&
+              tweets.length > 0 && (
+                <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <p className="text-muted-foreground text-sm text-center">
+                      {selectedJournalist
+                        ? "선택한 기자의 트윗이 없습니다."
+                        : "트윗이 없습니다."}
+                    </p>
+                  </div>
+                </Card>
+              )}
+            {!loading &&
+              !error &&
+              filteredTweets.length > 0 &&
+              filteredTweets.map((t) => {
                 const displayName =
                   (t.author_name?.split("@")[0]?.trim() as string) ||
                   t.author_name;
@@ -211,7 +327,7 @@ export default function HomePage() {
                 const id = t.tweet_id;
                 const handle = `@${t.author_username}`;
                 const isFollowing = followedJournalists.has(handle);
-                
+
                 return (
                   <FeedPost
                     key={id}

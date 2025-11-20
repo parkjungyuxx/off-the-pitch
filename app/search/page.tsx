@@ -140,7 +140,10 @@ export default function SearchPage() {
                         </Link>
 
                         <Button
-                          onClick={() => toggleFavorite(journalist.username)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            toggleFavorite(journalist.username, journalist.name);
+                          }}
                           size="sm"
                           variant={isFavorited ? "secondary" : "outline"}
                           className={cn(

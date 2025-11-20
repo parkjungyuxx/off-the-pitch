@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { fetchTweets, type Tweet } from "@/lib/tweets";
+import {
+  followJournalist,
+  unfollowJournalist,
+  getFollowedJournalists,
+} from "@/lib/follows";
 
 const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
   if (!url) return undefined;
@@ -31,7 +36,25 @@ export const useJournalistSearch = () => {
   const [allJournalists, setAllJournalists] = useState<Journalist[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [favorites, setFavorites] = useState<string[]>([]);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const loadFollowedJournalists = async () => {
+      try {
+        const followedData = await getFollowedJournalists();
+        if (followedData.data) {
+          const handles = new Set(
+            followedData.data.map((f) => f.journalist_handle.replace(/^@/, ""))
+          );
+          setFavorites(handles);
+        }
+      } catch (error) {
+        console.error("Failed to load followed journalists:", error);
+      }
+    };
+
+    loadFollowedJournalists();
+  }, []);
 
   useEffect(() => {
     const fetchJournalists = async () => {
@@ -84,12 +107,39 @@ export const useJournalistSearch = () => {
     );
   }, [searchQuery, allJournalists]);
 
-  const toggleFavorite = (username: string) => {
-    setFavorites((prev) =>
-      prev.includes(username)
-        ? prev.filter((fav) => fav !== username)
-        : [...prev, username],
-    );
+  const toggleFavorite = async (username: string, journalistName: string) => {
+    const handle = `@${username}`;
+    const isFollowing = favorites.has(username);
+
+    // 낙관적 업데이트 (UI 먼저 업데이트)
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      if (isFollowing) {
+        next.delete(username);
+      } else {
+        next.add(username);
+      }
+      return next;
+    });
+
+    // Supabase에 저장
+    const result = isFollowing
+      ? await unfollowJournalist(handle)
+      : await followJournalist(handle, journalistName);
+
+    if (!result.success) {
+      // 실패 시 롤백
+      setFavorites((prev) => {
+        const next = new Set(prev);
+        if (isFollowing) {
+          next.add(username);
+        } else {
+          next.delete(username);
+        }
+        return next;
+      });
+      console.error("Toggle follow error:", result.error);
+    }
   };
 
   return {
@@ -98,7 +148,7 @@ export const useJournalistSearch = () => {
     filteredJournalists,
     loading,
     error,
-    favorites,
+    favorites: Array.from(favorites),
     toggleFavorite,
   };
 };

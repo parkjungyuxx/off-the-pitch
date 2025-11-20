@@ -112,9 +112,12 @@ export function Sidebar({
                 "bg-sidebar-accent hover:bg-sidebar-accent"
             )}
             onClick={() => onMenuClick("favorites")}
+            asChild
           >
-            <Heart className="size-7" />
-            <span className="sr-only">Favorites</span>
+            <Link href="/favorites">
+              <Heart className="size-7" />
+              <span className="sr-only">Favorites</span>
+            </Link>
           </Button>
 
           <Button
@@ -228,9 +231,12 @@ export function Sidebar({
               "bg-sidebar-accent hover:bg-sidebar-accent"
           )}
           onClick={() => onMenuClick("favorites")}
+          asChild
         >
-          <Heart className="size-7" />
-          <span className="sr-only">Favorites</span>
+          <Link href="/favorites">
+            <Heart className="size-7" />
+            <span className="sr-only">Favorites</span>
+          </Link>
         </Button>
 
         <Button
