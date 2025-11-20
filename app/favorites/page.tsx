@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Sidebar } from "@/components/sidebar";
 import { FeedPost, type FeedPostProps } from "@/components/feed-post";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase-client";
+import { cn } from "@/lib/utils";
 import {
   followJournalist,
   unfollowJournalist,
@@ -44,6 +45,9 @@ export default function FavoritesPage() {
   const [followedJournalistsList, setFollowedJournalistsList] = useState<
     Array<{ handle: string; name: string; avatar: string }>
   >([]);
+  const [selectedJournalist, setSelectedJournalist] = useState<string | null>(
+    null
+  );
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [activeMenu, setActiveMenu] = useState<
     "home" | "search" | "favorites" | "leagues" | null
@@ -150,6 +154,14 @@ export default function FavoritesPage() {
     }
   }, [checkingAuth]);
 
+  // 선택된 기자에 따라 트윗 필터링
+  const filteredTweets = useMemo(() => {
+    if (!selectedJournalist) {
+      return tweets;
+    }
+    return tweets.filter((t) => `@${t.author_username}` === selectedJournalist);
+  }, [tweets, selectedJournalist]);
+
   const toggleFavorite = async (handle: string, journalistName: string) => {
     const isFollowing = followedJournalists.has(handle);
 
@@ -219,20 +231,34 @@ export default function FavoritesPage() {
           {followedJournalistsList.length > 0 && (
             <div className="px-4 lg:px-6 pt-4 pb-2">
               <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide">
-                {followedJournalistsList.map((journalist) => (
-                  <div
-                    key={journalist.handle}
-                    className="shrink-0 rounded-full border-2 border-border size-12 overflow-hidden"
-                  >
-                    <Image
-                      src={journalist.avatar}
-                      alt={journalist.name}
-                      width={48}
-                      height={48}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ))}
+                {followedJournalistsList.map((journalist) => {
+                  const isSelected = selectedJournalist === journalist.handle;
+                  return (
+                    <button
+                      key={journalist.handle}
+                      onClick={() =>
+                        setSelectedJournalist(
+                          isSelected ? null : journalist.handle
+                        )
+                      }
+                      className={cn(
+                        "shrink-0 rounded-full border-2 transition-all overflow-hidden",
+                        isSelected
+                          ? "border-primary size-14"
+                          : "border-border size-12 hover:border-white/20"
+                      )}
+                      title={journalist.name}
+                    >
+                      <Image
+                        src={journalist.avatar}
+                        alt={journalist.name}
+                        width={isSelected ? 56 : 48}
+                        height={isSelected ? 56 : 48}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -242,21 +268,38 @@ export default function FavoritesPage() {
               <p className="text-muted-foreground text-sm">로딩 중…</p>
             )}
             {error && <p className="text-destructive text-sm">{error}</p>}
-            {!loading && !error && tweets.length === 0 && (
-              <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
-                <div className="flex flex-col items-center justify-center py-12">
-                  <p className="text-muted-foreground text-sm text-center">
-                    팔로우한 기자가 없습니다.
-                    <br />
-                    기자를 팔로우하면 여기에 트윗이 표시됩니다.
-                  </p>
-                </div>
-              </Card>
-            )}
             {!loading &&
               !error &&
-              tweets.length > 0 &&
-              tweets.map((t) => {
+              filteredTweets.length === 0 &&
+              tweets.length === 0 && (
+                <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <p className="text-muted-foreground text-sm text-center">
+                      팔로우한 기자가 없습니다.
+                      <br />
+                      기자를 팔로우하면 여기에 트윗이 표시됩니다.
+                    </p>
+                  </div>
+                </Card>
+              )}
+            {!loading &&
+              !error &&
+              filteredTweets.length === 0 &&
+              tweets.length > 0 && (
+                <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <p className="text-muted-foreground text-sm text-center">
+                      {selectedJournalist
+                        ? "선택한 기자의 트윗이 없습니다."
+                        : "트윗이 없습니다."}
+                    </p>
+                  </div>
+                </Card>
+              )}
+            {!loading &&
+              !error &&
+              filteredTweets.length > 0 &&
+              filteredTweets.map((t) => {
                 const displayName =
                   (t.author_name?.split("@")[0]?.trim() as string) ||
                   t.author_name;
