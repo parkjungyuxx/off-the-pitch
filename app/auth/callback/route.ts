@@ -5,7 +5,24 @@ import { NextResponse } from "next/server";
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
+  const error = requestUrl.searchParams.get("error");
+  const errorDescription = requestUrl.searchParams.get("error_description");
   const next = requestUrl.searchParams.get("next") || "/";
+
+  // OAuth에서 에러가 발생한 경우 (사용자 취소 등)
+  if (error) {
+    console.error("OAuth error:", { error, errorDescription });
+    let errorMessage = "로그인에 실패했습니다. 잠시 후 다시 시도해주세요.";
+    
+    // 사용자가 취소한 경우
+    if (error === "access_denied" || error === "user_cancelled") {
+      errorMessage = "로그인이 취소되었습니다.";
+    }
+    
+    return NextResponse.redirect(
+      new URL(`/login?error=${encodeURIComponent(errorMessage)}`, requestUrl.origin)
+    );
+  }
 
   if (code) {
     try {
@@ -27,7 +44,10 @@ export async function GET(request: Request) {
           ),
         });
         return NextResponse.redirect(
-          new URL("/login?error=config", requestUrl.origin)
+          new URL(
+            "/login?error=" + encodeURIComponent("로그인에 실패했습니다. 잠시 후 다시 시도해주세요."),
+            requestUrl.origin
+          )
         );
       }
 
@@ -49,7 +69,6 @@ export async function GET(request: Request) {
               );
             } catch (error) {
               console.error("Cookie setAll error:", error);
-              // The `setAll` method was called from a Server Component.
             }
           },
         },
@@ -63,9 +82,18 @@ export async function GET(request: Request) {
           status: error.status,
           name: error.name,
         });
+        
+        let errorMessage = "로그인에 실패했습니다. 잠시 후 다시 시도해주세요.";
+        
+        if (error.message.includes("expired") || error.message.includes("invalid")) {
+          errorMessage = "로그인 세션이 만료되었습니다. 다시 시도해주세요.";
+        } else if (error.message.includes("network") || error.message.includes("timeout")) {
+          errorMessage = "네트워크 오류가 발생했습니다. 연결을 확인하고 다시 시도해주세요.";
+        }
+        
         return NextResponse.redirect(
           new URL(
-            `/login?error=${encodeURIComponent(error.message)}`,
+            `/login?error=${encodeURIComponent(errorMessage)}`,
             requestUrl.origin
           )
         );
@@ -79,11 +107,7 @@ export async function GET(request: Request) {
       console.error("Unexpected error in auth callback:", error);
       return NextResponse.redirect(
         new URL(
-          `/login?error=${encodeURIComponent(
-            error instanceof Error
-              ? error.message
-              : "알 수 없는 오류가 발생했습니다."
-          )}`,
+          `/login?error=${encodeURIComponent("로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")}`,
           requestUrl.origin
         )
       );

@@ -15,9 +15,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(() => {
     if (!errorParam) return null;
-    if (errorParam === "config") {
-      return "환경 변수가 설정되지 않았습니다. Supabase 설정을 확인해주세요.";
-    }
     return decodeURIComponent(errorParam);
   });
   const supabase = createClient();
@@ -32,7 +29,13 @@ export default function LoginPage() {
       }
     };
     checkSession();
-  }, [router, supabase]);
+
+    if (errorParam) {
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete("error");
+      window.history.replaceState({}, "", newUrl.toString());
+    }
+  }, [router, supabase, errorParam]);
 
   const handleSocialLogin = async (provider: "google" | "kakao") => {
     try {
@@ -47,11 +50,19 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setError(error.message);
+        let errorMessage = "로그인에 실패했습니다. 잠시 후 다시 시도해주세요.";
+        if (
+          error.message.includes("network") ||
+          error.message.includes("timeout")
+        ) {
+          errorMessage =
+            "네트워크 오류가 발생했습니다. 연결을 확인하고 다시 시도해주세요.";
+        }
+        setError(errorMessage);
         setLoading(false);
       }
     } catch {
-      setError("로그인 중 오류가 발생했습니다.");
+      setError("로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
       setLoading(false);
     }
   };
