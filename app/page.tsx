@@ -7,6 +7,12 @@ import { Sidebar } from "@/components/sidebar";
 import { FeedPost, type FeedPostProps } from "@/components/feed-post";
 import { fetchTweets, type Tweet } from "@/lib/tweets";
 import { createClient } from "@/lib/supabase-client";
+import {
+  followJournalist,
+  unfollowJournalist,
+  getFollowedJournalists,
+  isFollowingJournalist,
+} from "@/lib/follows";
 
 const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
   if (!url) return undefined;
@@ -32,7 +38,9 @@ const formatRelativeTime = (iso: string): string => {
 export default function HomePage() {
   const router = useRouter();
   const supabase = createClient();
-  const [favorites, setFavorites] = useState<string[]>([]);
+  const [followedJournalists, setFollowedJournalists] = useState<Set<string>>(
+    new Set()
+  );
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [activeMenu, setActiveMenu] = useState<
     "home" | "search" | "favorites" | "leagues" | null
@@ -72,25 +80,72 @@ export default function HomePage() {
   }, [theme]);
 
   useEffect(() => {
-    const run = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
         setError(null);
-        const { items } = await fetchTweets({ limit: 20 });
-        setTweets(items);
+        
+        // 트윗과 팔로우한 기자 목록을 동시에 로드
+        const [tweetsData, followedData] = await Promise.all([
+          fetchTweets({ limit: 20 }),
+          getFollowedJournalists(),
+        ]);
+
+        setTweets(tweetsData.items);
+
+        if (followedData.data) {
+          const handles = new Set(
+            followedData.data.map((f) => f.journalist_handle)
+          );
+          setFollowedJournalists(handles);
+        }
       } catch {
         setError("피드를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
       } finally {
         setLoading(false);
       }
     };
-    run();
-  }, []);
 
-  const toggleFavorite = (id: string) => {
-    setFavorites((prev) =>
-      prev.includes(id) ? prev.filter((favId) => favId !== id) : [...prev, id]
-    );
+    if (!checkingAuth) {
+      loadData();
+    }
+  }, [checkingAuth]);
+
+  const toggleFavorite = async (handle: string, journalistName: string) => {
+    const isFollowing = followedJournalists.has(handle);
+    
+    // 낙관적 업데이트 (UI 먼저 업데이트)
+    setFollowedJournalists((prev) => {
+      const next = new Set(prev);
+      if (isFollowing) {
+        next.delete(handle);
+      } else {
+        next.add(handle);
+      }
+      return next;
+    });
+
+    // Supabase에 저장
+    const result = isFollowing
+      ? await unfollowJournalist(handle)
+      : await followJournalist(handle, journalistName);
+
+    if (!result.success) {
+      // 실패 시 롤백
+      setFollowedJournalists((prev) => {
+        const next = new Set(prev);
+        if (isFollowing) {
+          next.add(handle);
+        } else {
+          next.delete(handle);
+        }
+        return next;
+      });
+      console.error("Toggle follow error:", result.error);
+      setError(`팔로우 실패: ${result.error}`);
+      // 에러 메시지 3초 후 자동 제거
+      setTimeout(() => setError(null), 3000);
+    }
   };
 
   if (checkingAuth) {
@@ -154,12 +209,15 @@ export default function HomePage() {
                     "/placeholder.svg",
                 };
                 const id = t.tweet_id;
+                const handle = `@${t.author_username}`;
+                const isFollowing = followedJournalists.has(handle);
+                
                 return (
                   <FeedPost
                     key={id}
                     {...mapped}
-                    isFavorited={favorites.includes(id)}
-                    onToggleFavorite={() => toggleFavorite(id)}
+                    isFavorited={isFollowing}
+                    onToggleFavorite={() => toggleFavorite(handle, displayName)}
                   />
                 );
               })}

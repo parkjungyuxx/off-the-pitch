@@ -7,6 +7,11 @@ import { Sidebar } from "@/components/sidebar";
 import { FeedPost, type FeedPostProps } from "@/components/feed-post";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase-client";
+import {
+  followJournalist,
+  unfollowJournalist,
+  getFollowedJournalists,
+} from "@/lib/follows";
 
 // TODO: 트윗 표시 기능 구현 시 사용
 // const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
@@ -33,7 +38,9 @@ import { createClient } from "@/lib/supabase-client";
 export default function FavoritesPage() {
   const router = useRouter();
   const supabase = createClient();
-  const [favorites, setFavorites] = useState<string[]>([]);
+  const [followedJournalists, setFollowedJournalists] = useState<Set<string>>(
+    new Set()
+  );
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [activeMenu, setActiveMenu] = useState<
     "home" | "search" | "favorites" | "leagues" | null
@@ -78,10 +85,18 @@ export default function FavoritesPage() {
         setLoading(true);
         setError(null);
 
+        // 팔로우한 기자 목록 가져오기
+        const followedData = await getFollowedJournalists();
+        if (followedData.data) {
+          const handles = new Set(
+            followedData.data.map((f) => f.journalist_handle)
+          );
+          setFollowedJournalists(handles);
+        }
+
         // TODO: 팔로우한 기자들의 트윗을 가져오는 로직 구현
-        // 1. 현재 사용자가 팔로우한 기자 목록 가져오기
-        // 2. 해당 기자들의 트윗만 필터링하여 가져오기
-        // 3. 시간순으로 정렬
+        // 1. 해당 기자들의 트윗만 필터링하여 가져오기
+        // 2. 시간순으로 정렬
 
         // 임시로 빈 배열 설정
         setTweets([]);
@@ -97,10 +112,40 @@ export default function FavoritesPage() {
     }
   }, [checkingAuth]);
 
-  const toggleFavorite = (id: string) => {
-    setFavorites((prev) =>
-      prev.includes(id) ? prev.filter((favId) => favId !== id) : [...prev, id]
-    );
+  const toggleFavorite = async (handle: string, journalistName: string) => {
+    const isFollowing = followedJournalists.has(handle);
+
+    // 낙관적 업데이트 (UI 먼저 업데이트)
+    setFollowedJournalists((prev) => {
+      const next = new Set(prev);
+      if (isFollowing) {
+        next.delete(handle);
+      } else {
+        next.add(handle);
+      }
+      return next;
+    });
+
+    // Supabase에 저장
+    const result = isFollowing
+      ? await unfollowJournalist(handle)
+      : await followJournalist(handle, journalistName);
+
+    if (!result.success) {
+      // 실패 시 롤백
+      setFollowedJournalists((prev) => {
+        const next = new Set(prev);
+        if (isFollowing) {
+          next.add(handle);
+        } else {
+          next.delete(handle);
+        }
+        return next;
+      });
+      console.error("Toggle follow error:", result.error);
+      setError(`팔로우 실패: ${result.error}`);
+      setTimeout(() => setError(null), 3000);
+    }
   };
 
   if (checkingAuth) {
@@ -159,12 +204,17 @@ export default function FavoritesPage() {
               tweets.length > 0 &&
               tweets.map((tweet, index) => {
                 const id = `tweet-${index}`;
+                const handle = tweet.handle;
+                const isFollowing = followedJournalists.has(handle);
+
                 return (
                   <FeedPost
                     key={id}
                     {...tweet}
-                    isFavorited={favorites.includes(id)}
-                    onToggleFavorite={() => toggleFavorite(id)}
+                    isFavorited={isFollowing}
+                    onToggleFavorite={() =>
+                      toggleFavorite(handle, tweet.journalist)
+                    }
                   />
                 );
               })}
