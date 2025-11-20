@@ -212,7 +212,6 @@ export default function HomePage() {
                     setSelectedLeague(league);
                     setShowLeagueSelector(false);
                   }}
-                  onClose={() => setShowLeagueSelector(false)}
                 />
               </div>
             </div>

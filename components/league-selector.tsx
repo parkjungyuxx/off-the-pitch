@@ -1,6 +1,5 @@
 "use client";
 
-import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -8,7 +7,6 @@ import { cn } from "@/lib/utils";
 interface LeagueSelectorProps {
   selectedLeague: string | null;
   onSelectLeague: (league: string | null) => void;
-  onClose: () => void;
 }
 
 const leagues = [
@@ -23,24 +21,14 @@ const leagues = [
 export function LeagueSelector({
   selectedLeague,
   onSelectLeague,
-  onClose,
 }: LeagueSelectorProps) {
   return (
     <div className="border-b border-border bg-card rounded-2xl mb-4">
       <div className="p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4">
           <h2 className="text-lg font-semibold text-card-foreground">
-            {"Select a League"}
+            {"리그 선택"}
           </h2>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-8 h-8 rounded-full"
-            onClick={onClose}
-          >
-            <X className="w-5 h-5" />
-            <span className="sr-only">{"Close"}</span>
-          </Button>
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-3">
