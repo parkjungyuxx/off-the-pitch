@@ -12,28 +12,28 @@ import {
   unfollowJournalist,
   getFollowedJournalists,
 } from "@/lib/follows";
+import { fetchTweets, type Tweet } from "@/lib/tweets";
 
-// TODO: 트윗 표시 기능 구현 시 사용
-// const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
-//   if (!url) return undefined;
-//   if (url.startsWith("https://pbs.twimg.com/media/") && !url.includes("?")) {
-//     return `${url}?format=jpg&name=large`;
-//   }
-//   return url;
-// };
+const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
+  if (!url) return undefined;
+  if (url.startsWith("https://pbs.twimg.com/media/") && !url.includes("?")) {
+    return `${url}?format=jpg&name=large`;
+  }
+  return url;
+};
 
-// const formatRelativeTime = (iso: string): string => {
-//   const now = Date.now();
-//   const then = new Date(iso).getTime();
-//   const diff = Math.max(0, Math.floor((now - then) / 1000));
-//   if (diff < 60) return `${diff}s`;
-//   const m = Math.floor(diff / 60);
-//   if (m < 60) return `${m}m`;
-//   const h = Math.floor(m / 60);
-//   if (h < 24) return `${h}h`;
-//   const d = Math.floor(h / 24);
-//   return `${d}d`;
-// };
+const formatRelativeTime = (iso: string): string => {
+  const now = Date.now();
+  const then = new Date(iso).getTime();
+  const diff = Math.max(0, Math.floor((now - then) / 1000));
+  if (diff < 60) return `${diff}s`;
+  const m = Math.floor(diff / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  return `${d}d`;
+};
 
 export default function FavoritesPage() {
   const router = useRouter();
@@ -45,7 +45,7 @@ export default function FavoritesPage() {
   const [activeMenu, setActiveMenu] = useState<
     "home" | "search" | "favorites" | "leagues" | null
   >("favorites");
-  const [tweets, setTweets] = useState<FeedPostProps[]>([]);
+  const [tweets, setTweets] = useState<Tweet[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
@@ -87,20 +87,31 @@ export default function FavoritesPage() {
 
         // 팔로우한 기자 목록 가져오기
         const followedData = await getFollowedJournalists();
-        if (followedData.data) {
-          const handles = new Set(
-            followedData.data.map((f) => f.journalist_handle)
-          );
-          setFollowedJournalists(handles);
+        if (!followedData.data || followedData.data.length === 0) {
+          setFollowedJournalists(new Set());
+          setTweets([]);
+          return;
         }
 
-        // TODO: 팔로우한 기자들의 트윗을 가져오는 로직 구현
-        // 1. 해당 기자들의 트윗만 필터링하여 가져오기
-        // 2. 시간순으로 정렬
+        const handles = new Set(
+          followedData.data.map((f) => f.journalist_handle)
+        );
+        setFollowedJournalists(handles);
 
-        // 임시로 빈 배열 설정
-        setTweets([]);
-      } catch {
+        // 팔로우한 기자들의 username 추출 (@ 제거)
+        const journalistUsernames = followedData.data.map((f) =>
+          f.journalist_handle.replace(/^@/, "")
+        );
+
+        // 팔로우한 기자들의 트윗만 가져오기
+        const tweetsData = await fetchTweets({
+          limit: 50,
+          journalists: journalistUsernames,
+        });
+
+        setTweets(tweetsData.items);
+      } catch (err) {
+        console.error("Load followed journalists tweets error:", err);
         setError("피드를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
       } finally {
         setLoading(false);
@@ -202,19 +213,34 @@ export default function FavoritesPage() {
             {!loading &&
               !error &&
               tweets.length > 0 &&
-              tweets.map((tweet, index) => {
-                const id = `tweet-${index}`;
-                const handle = tweet.handle;
+              tweets.map((t) => {
+                const displayName =
+                  (t.author_name?.split("@")[0]?.trim() as string) ||
+                  t.author_name;
+                const mapped: FeedPostProps = {
+                  journalist: displayName,
+                  handle: `@${t.author_username}`,
+                  credibility: 2, // 기본값 (Tier 2)
+                  content: t.tweet_text,
+                  images: (t.images ?? [])
+                    .map((u) => normalizeTwitterMediaUrl(u)!)
+                    .filter(Boolean),
+                  time: formatRelativeTime(t.created_at),
+                  link: t.url,
+                  avatar:
+                    normalizeTwitterMediaUrl(t.author_profile_image) ||
+                    "/placeholder.svg",
+                };
+                const id = t.tweet_id;
+                const handle = `@${t.author_username}`;
                 const isFollowing = followedJournalists.has(handle);
 
                 return (
                   <FeedPost
                     key={id}
-                    {...tweet}
+                    {...mapped}
                     isFavorited={isFollowing}
-                    onToggleFavorite={() =>
-                      toggleFavorite(handle, tweet.journalist)
-                    }
+                    onToggleFavorite={() => toggleFavorite(handle, displayName)}
                   />
                 );
               })}
