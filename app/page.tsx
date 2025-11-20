@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { IoIosArrowDown } from "react-icons/io";
 import { Sidebar } from "@/components/sidebar";
 import { FeedPost, type FeedPostProps } from "@/components/feed-post";
+import { Card } from "@/components/ui/card";
 import { LeagueSelector } from "@/components/league-selector";
 import { cn } from "@/lib/utils";
 import { fetchTweets, type Tweet } from "@/lib/tweets";
@@ -373,11 +374,15 @@ export default function HomePage() {
             )}
             {error && <p className="text-destructive text-sm">{error}</p>}
             {!loading && !error && filteredTweets.length === 0 && (
-              <p className="text-muted-foreground text-sm text-center py-8">
-                {selectedLeague
-                  ? "해당 리그의 피드가 없습니다."
-                  : "피드가 없습니다."}
-              </p>
+              <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
+                <div className="flex flex-col items-center justify-center py-12">
+                  <p className="text-muted-foreground text-sm text-center">
+                    {selectedLeague
+                      ? "해당 리그의 피드가 없습니다."
+                      : "피드가 없습니다."}
+                  </p>
+                </div>
+              </Card>
             )}
             {!loading &&
               !error &&
