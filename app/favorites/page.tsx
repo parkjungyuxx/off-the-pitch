@@ -213,26 +213,29 @@ export default function FavoritesPage() {
               <h1 className="text-3xl font-display font-bold tracking-wide text-balance">
                 좋아요
               </h1>
-              {followedJournalistsList.length > 0 && (
-                <div className="mt-4 flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                  {followedJournalistsList.map((journalist) => (
-                    <div
-                      key={journalist.handle}
-                      className="shrink-0 rounded-full border-2 border-border size-12 overflow-hidden"
-                    >
-                      <Image
-                        src={journalist.avatar}
-                        alt={journalist.name}
-                        width={48}
-                        height={48}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
+
+          {followedJournalistsList.length > 0 && (
+            <div className="px-4 lg:px-6 pt-4 pb-2">
+              <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide">
+                {followedJournalistsList.map((journalist) => (
+                  <div
+                    key={journalist.handle}
+                    className="shrink-0 rounded-full border-2 border-border size-12 overflow-hidden"
+                  >
+                    <Image
+                      src={journalist.avatar}
+                      alt={journalist.name}
+                      width={48}
+                      height={48}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="p-4 lg:p-6 space-y-4">
             {loading && (
