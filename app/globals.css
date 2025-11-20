@@ -132,3 +132,21 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
+  .scrollbar-hide {
+    -webkit-overflow-scrolling: touch; /* iOS smooth scrolling */
+  }
+  .scrollbar-hide img {
+    -webkit-user-drag: none;
+    user-select: none;
+    pointer-events: none;
+  }
+}

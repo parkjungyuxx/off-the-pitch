@@ -8,6 +8,7 @@ import { FeedPost, type FeedPostProps } from "@/components/feed-post";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase-client";
 import { cn } from "@/lib/utils";
+import { useDragScroll } from "@/hooks/use-drag-scroll";
 import {
   followJournalist,
   unfollowJournalist,
@@ -56,6 +57,7 @@ export default function FavoritesPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
+  const scrollRef = useDragScroll<HTMLDivElement>();
 
   useEffect(() => {
     const checkSession = async () => {
@@ -230,7 +232,10 @@ export default function FavoritesPage() {
 
           {followedJournalistsList.length > 0 && (
             <div className="px-4 lg:px-6 pt-4 pb-2">
-              <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide">
+              <div
+                ref={scrollRef}
+                className="flex items-center gap-3 overflow-x-auto scrollbar-hide"
+              >
                 {followedJournalistsList.map((journalist) => {
                   const isSelected = selectedJournalist === journalist.handle;
                   return (
@@ -241,8 +246,9 @@ export default function FavoritesPage() {
                           isSelected ? null : journalist.handle
                         )
                       }
+                      onDragStart={(e) => e.preventDefault()}
                       className={cn(
-                        "shrink-0 rounded-full border-2 transition-all overflow-hidden",
+                        "shrink-0 rounded-full border-2 transition-all overflow-hidden select-none",
                         isSelected
                           ? "border-primary size-14"
                           : "border-border size-12 hover:border-white/20"
@@ -254,7 +260,8 @@ export default function FavoritesPage() {
                         alt={journalist.name}
                         width={isSelected ? 56 : 48}
                         height={isSelected ? 56 : 48}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover pointer-events-none"
+                        draggable={false}
                       />
                     </button>
                   );
