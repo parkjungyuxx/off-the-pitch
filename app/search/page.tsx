@@ -30,7 +30,7 @@ function CredibilityIcon({ level }: { level: 1 | 2 | 3 }) {
 export default function SearchPage() {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [activeMenu, setActiveMenu] = useState<
-    "home" | "search" | "favorites" | "leagues" | null
+    "home" | "search" | "favorites" | null
   >("search");
 
   const {

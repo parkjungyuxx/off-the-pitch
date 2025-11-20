@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import { IoIosArrowDown } from "react-icons/io";
 import { Sidebar } from "@/components/sidebar";
 import { FeedPost, type FeedPostProps } from "@/components/feed-post";
+import { LeagueSelector } from "@/components/league-selector";
+import { cn } from "@/lib/utils";
 import { fetchTweets, type Tweet } from "@/lib/tweets";
 import { createClient } from "@/lib/supabase-client";
 import {
   followJournalist,
   unfollowJournalist,
   getFollowedJournalists,
-  isFollowingJournalist,
 } from "@/lib/follows";
 
 const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
@@ -43,8 +44,10 @@ export default function HomePage() {
   );
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [activeMenu, setActiveMenu] = useState<
-    "home" | "search" | "favorites" | "leagues" | null
+    "home" | "search" | "favorites" | null
   >("home");
+  const [selectedLeague, setSelectedLeague] = useState<string | null>(null);
+  const [showLeagueSelector, setShowLeagueSelector] = useState(false);
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +87,7 @@ export default function HomePage() {
       try {
         setLoading(true);
         setError(null);
-        
+
         // 트윗과 팔로우한 기자 목록을 동시에 로드
         const [tweetsData, followedData] = await Promise.all([
           fetchTweets({ limit: 20 }),
@@ -113,7 +116,7 @@ export default function HomePage() {
 
   const toggleFavorite = async (handle: string, journalistName: string) => {
     const isFollowing = followedJournalists.has(handle);
-    
+
     // 낙관적 업데이트 (UI 먼저 업데이트)
     setFollowedJournalists((prev) => {
       const next = new Set(prev);
@@ -163,7 +166,6 @@ export default function HomePage() {
         onMenuClick={(menu) => {
           setActiveMenu(menu);
         }}
-        selectedLeague={null}
         theme={theme}
         onThemeChange={setTheme}
       />
@@ -175,13 +177,46 @@ export default function HomePage() {
               <h1 className="text-3xl font-display font-bold tracking-wide text-balance">
                 오프 더 피치
               </h1>
-              <div className="mt-1 flex justify-center">
-                <div className="flex items-center justify-center size-6 rounded-full border border-[rgb(57,57,57)] bg-card">
-                  <IoIosArrowDown className="size-4 text-white" />
-                </div>
+              <div className="mt-2 flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowLeagueSelector((prev) => !prev)}
+                  className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-full"
+                  aria-expanded={showLeagueSelector}
+                  aria-controls="league-selector"
+                  aria-label="리그 선택 열기"
+                >
+                  <div className="flex items-center justify-center size-7 rounded-full border border-[rgb(57,57,57)] bg-card hover:border-white/40 transition-colors">
+                    <IoIosArrowDown
+                      className={cn(
+                        "size-4 text-white transition-transform",
+                        showLeagueSelector && "rotate-180"
+                      )}
+                    />
+                  </div>
+                </button>
               </div>
             </div>
           </div>
+
+          {showLeagueSelector && (
+            <div
+              id="league-selector"
+              className="px-4 lg:px-6"
+              aria-hidden={!showLeagueSelector}
+            >
+              <div className="py-2">
+                <LeagueSelector
+                  selectedLeague={selectedLeague}
+                  onSelectLeague={(league) => {
+                    setSelectedLeague(league);
+                    setShowLeagueSelector(false);
+                  }}
+                  onClose={() => setShowLeagueSelector(false)}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="p-4 lg:p-6 space-y-4">
             {loading && (
@@ -211,7 +246,7 @@ export default function HomePage() {
                 const id = t.tweet_id;
                 const handle = `@${t.author_username}`;
                 const isFollowing = followedJournalists.has(handle);
-                
+
                 return (
                   <FeedPost
                     key={id}
