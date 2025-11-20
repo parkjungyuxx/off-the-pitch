@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { IoIosArrowDown } from "react-icons/io";
 import { Sidebar } from "@/components/sidebar";
 import { FeedPost, type FeedPostProps } from "@/components/feed-post";
 import { fetchTweets, type Tweet } from "@/lib/tweets";
+import { createClient } from "@/lib/supabase-client";
 
 const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
   if (!url) return undefined;
@@ -28,6 +30,8 @@ const formatRelativeTime = (iso: string): string => {
 };
 
 export default function HomePage() {
+  const router = useRouter();
+  const supabase = createClient();
   const [favorites, setFavorites] = useState<string[]>([]);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [activeMenu, setActiveMenu] = useState<
@@ -36,6 +40,27 @@ export default function HomePage() {
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session) {
+          router.push("/login");
+          return;
+        }
+      } catch (error) {
+        console.error("Session check error:", error);
+        router.push("/login");
+      } finally {
+        setCheckingAuth(false);
+      }
+    };
+    checkSession();
+  }, [router, supabase]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -67,6 +92,14 @@ export default function HomePage() {
       prev.includes(id) ? prev.filter((favId) => favId !== id) : [...prev, id]
     );
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="flex min-h-screen bg-background items-center justify-center">
+        <p className="text-muted-foreground text-sm">로딩 중…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-background">
