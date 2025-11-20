@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { IoIosArrowDown } from "react-icons/io";
+import Image from "next/image";
 import { Sidebar } from "@/components/sidebar";
 import { FeedPost, type FeedPostProps } from "@/components/feed-post";
 import { Card } from "@/components/ui/card";
@@ -41,6 +41,9 @@ export default function FavoritesPage() {
   const [followedJournalists, setFollowedJournalists] = useState<Set<string>>(
     new Set()
   );
+  const [followedJournalistsList, setFollowedJournalistsList] = useState<
+    Array<{ handle: string; name: string; avatar: string }>
+  >([]);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [activeMenu, setActiveMenu] = useState<
     "home" | "search" | "favorites" | "leagues" | null
@@ -110,6 +113,30 @@ export default function FavoritesPage() {
         });
 
         setTweets(tweetsData.items);
+
+        // 기자별 프로필 이미지 추출 (트윗에서 가져오기)
+        const journalistMap = new Map<
+          string,
+          { handle: string; name: string; avatar: string }
+        >();
+
+        followedData.data.forEach((f) => {
+          const handle = f.journalist_handle;
+          const username = handle.replace(/^@/, "");
+          // 해당 기자의 첫 번째 트윗에서 프로필 이미지 가져오기
+          const journalistTweet = tweetsData.items.find(
+            (t) => t.author_username === username
+          );
+          journalistMap.set(handle, {
+            handle,
+            name: f.journalist_name,
+            avatar:
+              normalizeTwitterMediaUrl(journalistTweet?.author_profile_image) ||
+              `/api/placeholder/48/48`,
+          });
+        });
+
+        setFollowedJournalistsList(Array.from(journalistMap.values()));
       } catch (err) {
         console.error("Load followed journalists tweets error:", err);
         setError("피드를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
@@ -186,11 +213,24 @@ export default function FavoritesPage() {
               <h1 className="text-3xl font-display font-bold tracking-wide text-balance">
                 좋아요
               </h1>
-              <div className="mt-1 flex justify-center">
-                <div className="flex items-center justify-center size-6 rounded-full border border-[rgb(57,57,57)] bg-card">
-                  <IoIosArrowDown className="size-4 text-white" />
+              {followedJournalistsList.length > 0 && (
+                <div className="mt-4 flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                  {followedJournalistsList.map((journalist) => (
+                    <div
+                      key={journalist.handle}
+                      className="shrink-0 rounded-full border-2 border-border size-12 overflow-hidden"
+                    >
+                      <Image
+                        src={journalist.avatar}
+                        alt={journalist.name}
+                        width={48}
+                        height={48}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
