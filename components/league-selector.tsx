@@ -10,12 +10,27 @@ interface LeagueSelectorProps {
 }
 
 const leagues = [
-  { name: "Premier League", country: "England", emoji: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
-  { name: "La Liga", country: "Spain", emoji: "🇪🇸" },
-  { name: "Serie A", country: "Italy", emoji: "🇮🇹" },
-  { name: "Bundesliga", country: "Germany", emoji: "🇩🇪" },
-  { name: "Ligue 1", country: "France", emoji: "🇫🇷" },
-  { name: "Others", country: "Rest of the world", emoji: "🌏" },
+  {
+    name: "Premier League",
+    displayName: "프리미어 리그",
+    country: "잉글랜드",
+    emoji: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+  },
+  { name: "La Liga", displayName: "라리가", country: "스페인", emoji: "🇪🇸" },
+  {
+    name: "Serie A",
+    displayName: "세리에 A",
+    country: "이탈리아",
+    emoji: "🇮🇹",
+  },
+  {
+    name: "Bundesliga",
+    displayName: "분데스리가",
+    country: "독일",
+    emoji: "🇩🇪",
+  },
+  { name: "Ligue 1", displayName: "리그 1", country: "프랑스", emoji: "🇫🇷" },
+  { name: "Others", displayName: "기타", country: "기타 국가", emoji: "🌏" },
 ];
 
 export function LeagueSelector({
@@ -47,7 +62,7 @@ export function LeagueSelector({
                 <span className="text-3xl">{league.emoji}</span>
                 <div>
                   <div className="font-semibold text-card-foreground text-sm">
-                    {league.name}
+                    {league.displayName}
                   </div>
                   <div className="text-muted-foreground text-xs">
                     {league.country}
@@ -69,7 +84,7 @@ export function LeagueSelector({
             )}
             onClick={() => onSelectLeague(null)}
           >
-            {"Clear Filter"}
+            {"필터 초기화"}
           </Button>
         </div>
       </div>
