@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Search, Heart, Sun, Moon, LogOut } from "lucide-react";
-import { BsTrophy } from "react-icons/bs";
 import { CgDetailsMore } from "react-icons/cg";
 import { GoHomeFill } from "react-icons/go";
 import { Button } from "@/components/ui/button";
@@ -17,10 +16,8 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase-client";
 
 interface SidebarProps {
-  activeMenu: "home" | "search" | "favorites" | "leagues" | null;
-  onMenuClick: (menu: "home" | "search" | "favorites" | "leagues") => void;
-  selectedLeague: string | null;
-  showLeagueSelector?: boolean;
+  activeMenu: "home" | "search" | "favorites" | null;
+  onMenuClick: (menu: "home" | "search" | "favorites") => void;
   theme?: "light" | "dark";
   onThemeChange?: (theme: "light" | "dark") => void;
 }
@@ -28,8 +25,6 @@ interface SidebarProps {
 export function Sidebar({
   activeMenu,
   onMenuClick,
-  selectedLeague,
-  showLeagueSelector = false,
   theme = "dark",
   onThemeChange,
 }: SidebarProps) {
@@ -117,23 +112,6 @@ export function Sidebar({
             <Link href="/favorites">
               <Heart className="size-7" />
               <span className="sr-only">Favorites</span>
-            </Link>
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn(
-              "w-16 h-12 rounded-xl hover:bg-sidebar-accent",
-              activeMenu === "leagues" &&
-                "bg-sidebar-accent hover:bg-sidebar-accent"
-            )}
-            onClick={() => onMenuClick("leagues")}
-            asChild
-          >
-            <Link href="/leagues">
-              <BsTrophy className="size-7" />
-              <span className="sr-only">Football Leagues</span>
             </Link>
           </Button>
         </nav>
@@ -236,23 +214,6 @@ export function Sidebar({
           <Link href="/favorites">
             <Heart className="size-7" />
             <span className="sr-only">Favorites</span>
-          </Link>
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "w-16 h-12 rounded-xl hover:bg-sidebar-accent",
-            activeMenu === "leagues" &&
-              "bg-sidebar-accent hover:bg-sidebar-accent"
-          )}
-          onClick={() => onMenuClick("leagues")}
-          asChild
-        >
-          <Link href="/leagues">
-            <BsTrophy className="size-7" />
-            <span className="sr-only">Football Leagues</span>
           </Link>
         </Button>
 

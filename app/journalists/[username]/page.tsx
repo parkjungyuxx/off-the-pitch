@@ -76,7 +76,7 @@ export default function JournalistPage({ params }: JournalistPageProps) {
   const username = decodeURIComponent(resolvedParams.username);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [activeMenu, setActiveMenu] = useState<
-    "home" | "search" | "favorites" | "leagues" | null
+    "home" | "search" | "favorites" | null
   >("search");
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [profile, setProfile] = useState<JournalistProfile | null>(null);

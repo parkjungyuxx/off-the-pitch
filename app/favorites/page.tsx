@@ -51,7 +51,7 @@ export default function FavoritesPage() {
   );
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [activeMenu, setActiveMenu] = useState<
-    "home" | "search" | "favorites" | "leagues" | null
+    "home" | "search" | "favorites" | null
   >("favorites");
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [loading, setLoading] = useState<boolean>(true);

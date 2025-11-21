@@ -1,6 +1,5 @@
 "use client";
 
-import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -8,39 +7,43 @@ import { cn } from "@/lib/utils";
 interface LeagueSelectorProps {
   selectedLeague: string | null;
   onSelectLeague: (league: string | null) => void;
-  onClose: () => void;
 }
 
 const leagues = [
-  { name: "Premier League", country: "England", emoji: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
-  { name: "La Liga", country: "Spain", emoji: "🇪🇸" },
-  { name: "Serie A", country: "Italy", emoji: "🇮🇹" },
-  { name: "Bundesliga", country: "Germany", emoji: "🇩🇪" },
-  { name: "Ligue 1", country: "France", emoji: "🇫🇷" },
-  { name: "Others", country: "Rest of the world", emoji: "🌏" },
+  {
+    name: "Premier League",
+    displayName: "프리미어 리그",
+    country: "잉글랜드",
+    emoji: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+  },
+  { name: "La Liga", displayName: "라리가", country: "스페인", emoji: "🇪🇸" },
+  {
+    name: "Serie A",
+    displayName: "세리에 A",
+    country: "이탈리아",
+    emoji: "🇮🇹",
+  },
+  {
+    name: "Bundesliga",
+    displayName: "분데스리가",
+    country: "독일",
+    emoji: "🇩🇪",
+  },
+  { name: "Ligue 1", displayName: "리그 1", country: "프랑스", emoji: "🇫🇷" },
+  { name: "Others", displayName: "기타", country: "기타 국가", emoji: "🌏" },
 ];
 
 export function LeagueSelector({
   selectedLeague,
   onSelectLeague,
-  onClose,
 }: LeagueSelectorProps) {
   return (
     <div className="border-b border-border bg-card rounded-2xl mb-4">
       <div className="p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4">
           <h2 className="text-lg font-semibold text-card-foreground">
-            {"Select a League"}
+            {"리그 선택"}
           </h2>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-8 h-8 rounded-full"
-            onClick={onClose}
-          >
-            <X className="w-5 h-5" />
-            <span className="sr-only">{"Close"}</span>
-          </Button>
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-3">
@@ -59,7 +62,7 @@ export function LeagueSelector({
                 <span className="text-3xl">{league.emoji}</span>
                 <div>
                   <div className="font-semibold text-card-foreground text-sm">
-                    {league.name}
+                    {league.displayName}
                   </div>
                   <div className="text-muted-foreground text-xs">
                     {league.country}
@@ -81,7 +84,7 @@ export function LeagueSelector({
             )}
             onClick={() => onSelectLeague(null)}
           >
-            {"Clear Filter"}
+            {"필터 초기화"}
           </Button>
         </div>
       </div>
