@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { FcGoogle } from "react-icons/fc";
 import { createClient } from "@/lib/supabase-client";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const errorParam = searchParams.get("error");
@@ -128,5 +128,23 @@ export default function LoginPage() {
         </p>
       </Card>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen bg-background items-center justify-center p-4">
+          <Card className="w-full max-w-md p-8 rounded-2xl border border-[rgb(57,57,57)] bg-card">
+            <div className="flex flex-col items-center">
+              <p className="text-muted-foreground text-sm">로딩 중…</p>
+            </div>
+          </Card>
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }
