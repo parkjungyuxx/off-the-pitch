@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Search, Heart, Sun, Moon, LogOut } from "lucide-react";
 import { CgDetailsMore } from "react-icons/cg";
-import { GoHomeFill } from "react-icons/go";
+import { GoHome, GoHomeFill } from "react-icons/go";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -76,7 +76,11 @@ export function Sidebar({
             asChild
           >
             <Link href="/">
-              <GoHomeFill className="size-7" style={{ strokeWidth: 1.5 }} />
+              {activeMenu === "home" ? (
+                <GoHomeFill className="size-7" style={{ strokeWidth: 1 }} />
+              ) : (
+                <GoHome className="size-7" style={{ strokeWidth: 1 }} />
+              )}
               <span className="sr-only">Home</span>
             </Link>
           </Button>
@@ -110,7 +114,11 @@ export function Sidebar({
             asChild
           >
             <Link href="/favorites">
-              <Heart className="size-7" />
+              {activeMenu === "favorites" ? (
+                <Heart className="size-7 fill-red-500 text-red-500" />
+              ) : (
+                <Heart className="size-7" />
+              )}
               <span className="sr-only">Favorites</span>
             </Link>
           </Button>
@@ -183,7 +191,11 @@ export function Sidebar({
           asChild
         >
           <Link href="/">
-            <GoHomeFill className="size-7" style={{ strokeWidth: 1.5 }} />
+            {activeMenu === "home" ? (
+              <GoHomeFill className="size-7" style={{ strokeWidth: 1 }} />
+            ) : (
+              <GoHome className="size-7" style={{ strokeWidth: 1 }} />
+            )}
             <span className="sr-only">Home</span>
           </Link>
         </Button>
@@ -217,7 +229,11 @@ export function Sidebar({
           asChild
         >
           <Link href="/favorites">
-            <Heart className="size-7" />
+            {activeMenu === "favorites" ? (
+              <Heart className="size-7 fill-red-500 text-red-500" />
+            ) : (
+              <Heart className="size-7" />
+            )}
             <span className="sr-only">Favorites</span>
           </Link>
         </Button>
