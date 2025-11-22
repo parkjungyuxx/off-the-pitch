@@ -67,9 +67,7 @@ const ProfileSkeleton = ({ theme }: { theme: "light" | "dark" }) => (
   <Card
     className={cn(
       "p-6 rounded-2xl border bg-card",
-      theme === "light"
-        ? "border-gray-300"
-        : "border-[rgb(57,57,57)]"
+      theme === "light" ? "border-gray-300" : "border-[rgb(57,57,57)]"
     )}
   >
     <div className="flex gap-4 items-start">
@@ -97,7 +95,6 @@ export default function JournalistPage({ params }: JournalistPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFollowing, setIsFollowing] = useState<boolean>(false);
-
 
   useEffect(() => {
     const run = async () => {
@@ -175,7 +172,8 @@ export default function JournalistPage({ params }: JournalistPageProps) {
     };
   }, [profile, username]);
 
-  const mappedTweets: FeedPostProps[] = tweets.map((t) => ({
+  const mappedTweets = tweets.map((t) => ({
+    tweetId: t.tweet_id,
     journalist:
       (t.author_name?.split("@")[0]?.trim() as string) || t.author_name,
     handle: `@${t.author_username}`,
@@ -278,8 +276,8 @@ export default function JournalistPage({ params }: JournalistPageProps) {
                           ? "bg-white text-black border-gray-300 hover:bg-white"
                           : "bg-black text-white border-black hover:bg-black/90"
                         : isFollowing
-                          ? "bg-[rgb(24,24,24)] text-white border-[rgb(57,57,57)] hover:bg-[rgb(24,24,24)]"
-                          : "bg-white text-black border-[rgb(57,57,57)] hover:bg-white/90"
+                        ? "bg-[rgb(24,24,24)] text-white border-[rgb(57,57,57)] hover:bg-[rgb(24,24,24)]"
+                        : "bg-white text-black border-[rgb(57,57,57)] hover:bg-white/90"
                     )}
                     variant={isFollowing ? "secondary" : "outline"}
                     onClick={toggleFavorite}
@@ -299,16 +297,20 @@ export default function JournalistPage({ params }: JournalistPageProps) {
                 아직 게시된 트윗이 없습니다.
               </Card>
             ) : (
-              mappedTweets.map((post) => {
-                const id = `${username}-${post.time}`;
-                return (
-                  <FeedPost
-                    key={id}
-                    {...post}
-                    showFollowButton={false}
-                  />
-                );
-              })
+              mappedTweets.map((post) => (
+                <FeedPost
+                  key={post.tweetId}
+                  journalist={post.journalist}
+                  handle={post.handle}
+                  credibility={post.credibility}
+                  content={post.content}
+                  images={post.images}
+                  time={post.time}
+                  link={post.link}
+                  avatar={post.avatar}
+                  showFollowButton={false}
+                />
+              ))
             )}
           </div>
         </div>
