@@ -128,8 +128,8 @@ export function FeedPost({
                         ? "bg-white text-black border-gray-300 hover:bg-white"
                         : "bg-black text-white border-black hover:bg-black/90"
                       : isFavorited
-                        ? "bg-[rgb(24,24,24)] text-white border-[rgb(57,57,57)] hover:bg-[rgb(24,24,24)]"
-                        : "bg-white text-black border-[rgb(57,57,57)] hover:bg-white/90"
+                      ? "bg-[rgb(24,24,24)] text-white border-[rgb(57,57,57)] hover:bg-[rgb(24,24,24)]"
+                      : "bg-white text-black border-[rgb(57,57,57)] hover:bg-white/90"
                   )}
                 >
                   {isFavorited ? "팔로잉" : "팔로우"}
@@ -160,7 +160,10 @@ export function FeedPost({
               {images.slice(0, 4).map((src, idx) => {
                 if (!src || failedImageIdx.has(idx)) return null;
                 return (
-                  <div key={idx} className="w-full max-w-full overflow-hidden rounded-2xl">
+                  <div
+                    key={idx}
+                    className="w-full max-w-full overflow-hidden rounded-2xl"
+                  >
                     <Image
                       src={src}
                       alt={`${journalist} media ${idx + 1}`}
@@ -172,7 +175,7 @@ export function FeedPost({
                       decoding="async"
                       referrerPolicy="no-referrer"
                       className="w-full h-auto rounded-2xl object-cover bg-muted"
-                      style={{ maxWidth: '100%', height: 'auto' }}
+                      style={{ maxWidth: "100%", height: "auto" }}
                       onError={() => {
                         setFailedImageIdx((prev) => {
                           const next = new Set(prev);
@@ -191,7 +194,13 @@ export function FeedPost({
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className={cn(
+                "h-8 px-3 text-xs text-muted-foreground transition-colors",
+                "hover:bg-transparent",
+                theme === "light"
+                  ? "hover:text-gray-700"
+                  : "hover:text-gray-300"
+              )}
               onClick={(e) => {
                 e.stopPropagation();
                 handleTranslate();
@@ -207,8 +216,8 @@ export function FeedPost({
               {isTranslating
                 ? "번역 중..."
                 : isTranslated
-                  ? "원문 보기"
-                  : "번역 보기"}
+                ? "원문 보기"
+                : "번역 보기"}
             </Button>
 
             <Link
