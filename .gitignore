@@ -43,3 +43,6 @@ next-env.d.ts
 # documentation
 *.mdc
 *.md
+
+# memory-bank (context engineering)
+memory-bank/
