@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Search, Heart, Sun, Moon, LogOut } from "lucide-react";
 import { CgDetailsMore } from "react-icons/cg";
-import { GoHomeFill } from "react-icons/go";
+import { GoHome, GoHomeFill } from "react-icons/go";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -57,7 +57,7 @@ export function Sidebar({
                 alt="OFF THE PITCH"
                 width={34}
                 height={34}
-                className="rounded-full"
+                className={cn("rounded-full", theme === "light" && "invert")}
               />
             </div>
           </Link>
@@ -76,7 +76,11 @@ export function Sidebar({
             asChild
           >
             <Link href="/">
-              <GoHomeFill className="size-7" style={{ strokeWidth: 1.5 }} />
+              {activeMenu === "home" ? (
+                <GoHomeFill className="size-7" style={{ strokeWidth: 1 }} />
+              ) : (
+                <GoHome className="size-7" style={{ strokeWidth: 1 }} />
+              )}
               <span className="sr-only">Home</span>
             </Link>
           </Button>
@@ -110,7 +114,11 @@ export function Sidebar({
             asChild
           >
             <Link href="/favorites">
-              <Heart className="size-7" />
+              {activeMenu === "favorites" ? (
+                <Heart className="size-7 fill-red-500 text-red-500" />
+              ) : (
+                <Heart className="size-7" />
+              )}
               <span className="sr-only">Favorites</span>
             </Link>
           </Button>
@@ -130,7 +138,12 @@ export function Sidebar({
           <PopoverContent
             side="right"
             align="end"
-            className="w-48 p-2 bg-[#141414] border-[#1a1a1a]"
+            className={cn(
+              "w-48 p-2",
+              theme === "light"
+                ? "bg-white border-gray-300"
+                : "bg-[#141414] border-[#1a1a1a]"
+            )}
           >
             <div className="space-y-1">
               <Button
@@ -178,7 +191,11 @@ export function Sidebar({
           asChild
         >
           <Link href="/">
-            <GoHomeFill className="size-7" style={{ strokeWidth: 1.5 }} />
+            {activeMenu === "home" ? (
+              <GoHomeFill className="size-7" style={{ strokeWidth: 1 }} />
+            ) : (
+              <GoHome className="size-7" style={{ strokeWidth: 1 }} />
+            )}
             <span className="sr-only">Home</span>
           </Link>
         </Button>
@@ -212,7 +229,11 @@ export function Sidebar({
           asChild
         >
           <Link href="/favorites">
-            <Heart className="size-7" />
+            {activeMenu === "favorites" ? (
+              <Heart className="size-7 fill-red-500 text-red-500" />
+            ) : (
+              <Heart className="size-7" />
+            )}
             <span className="sr-only">Favorites</span>
           </Link>
         </Button>
@@ -231,7 +252,12 @@ export function Sidebar({
           <PopoverContent
             side="top"
             align="end"
-            className="w-48 p-2 bg-[#141414] border-[#1a1a1a]"
+            className={cn(
+              "w-48 p-2",
+              theme === "light"
+                ? "bg-white border-gray-300"
+                : "bg-[#141414] border-[#1a1a1a]"
+            )}
           >
             <div className="space-y-1">
               <Button

@@ -17,6 +17,7 @@ import {
   getFollowedJournalists,
 } from "@/lib/follows";
 import { fetchTweets, type Tweet } from "@/lib/tweets";
+import { useTheme } from "@/hooks/use-theme";
 
 const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
   if (!url) return undefined;
@@ -51,7 +52,7 @@ export default function FavoritesPage() {
   const [selectedJournalist, setSelectedJournalist] = useState<string | null>(
     null
   );
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const { theme, setTheme } = useTheme();
   const [activeMenu, setActiveMenu] = useState<
     "home" | "search" | "favorites" | null
   >("favorites");
@@ -81,14 +82,6 @@ export default function FavoritesPage() {
     checkSession();
   }, [router, supabase]);
 
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "light") {
-      root.classList.add("light");
-    } else {
-      root.classList.remove("light");
-    }
-  }, [theme]);
 
   useEffect(() => {
     const loadFollowedJournalistsTweets = async () => {

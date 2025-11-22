@@ -16,6 +16,7 @@ import {
   unfollowJournalist,
   getFollowedJournalists,
 } from "@/lib/follows";
+import { useTheme } from "@/hooks/use-theme";
 
 const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
   if (!url) return undefined;
@@ -153,7 +154,7 @@ export default function HomePage() {
   const [followedJournalists, setFollowedJournalists] = useState<Set<string>>(
     new Set()
   );
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const { theme, setTheme } = useTheme();
   const [activeMenu, setActiveMenu] = useState<
     "home" | "search" | "favorites" | null
   >("home");
@@ -183,15 +184,6 @@ export default function HomePage() {
     };
     checkSession();
   }, [router, supabase]);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "light") {
-      root.classList.add("light");
-    } else {
-      root.classList.remove("light");
-    }
-  }, [theme]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -301,11 +293,7 @@ export default function HomePage() {
   }, [tweets, selectedLeague]);
 
   if (checkingAuth) {
-    return (
-      <div className="flex min-h-screen bg-background items-center justify-center">
-        <p className="text-muted-foreground text-sm">로딩 중…</p>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -335,7 +323,14 @@ export default function HomePage() {
                   aria-controls="league-selector"
                   aria-label="리그 선택 열기"
                 >
-                  <div className="flex items-center justify-center size-7 rounded-full border border-[rgb(57,57,57)] bg-card hover:border-white/40 transition-colors">
+                  <div
+                    className={cn(
+                      "flex items-center justify-center size-7 rounded-full border bg-card hover:border-white/40 transition-colors",
+                      theme === "light"
+                        ? "border-gray-300"
+                        : "border-[rgb(57,57,57)]"
+                    )}
+                  >
                     <IoIosArrowDown
                       className={cn(
                         "size-4 text-white transition-transform",

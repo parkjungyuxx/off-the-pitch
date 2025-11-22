@@ -1,8 +1,21 @@
+"use client";
+
 import { Card } from "@/components/ui/card";
+import { useTheme } from "@/hooks/use-theme";
+import { cn } from "@/lib/utils";
 
 export function FeedPostSkeleton() {
+  const { theme } = useTheme();
+  
   return (
-    <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
+    <Card
+      className={cn(
+        "p-6 rounded-2xl border bg-card",
+        theme === "light"
+          ? "border-gray-300"
+          : "border-[rgb(57,57,57)]"
+      )}
+    >
       <div className="flex gap-4">
         {/* 프로필 이미지 스켈레톤 */}
         <div className="shrink-0">

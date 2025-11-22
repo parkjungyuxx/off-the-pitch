@@ -38,7 +38,7 @@ export function LeagueSelector({
   onSelectLeague,
 }: LeagueSelectorProps) {
   return (
-    <div className="border-b border-border bg-card rounded-2xl mb-4">
+    <div className="border border-border dark:border-[rgb(57,57,57)] bg-card rounded-2xl mb-4">
       <div className="p-6">
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-card-foreground">

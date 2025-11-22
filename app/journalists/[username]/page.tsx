@@ -8,13 +8,20 @@ import { IoIosArrowBack } from "react-icons/io";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { FeedPost, type FeedPostProps } from "@/components/feed-post";
+import { FeedPost } from "@/components/feed-post";
 import { JournalistSkeletonList } from "@/components/search/journalist-skeleton-list";
 import { fetchTweets, type Tweet } from "@/lib/tweets";
 import {
   fetchJournalistProfile,
   type JournalistProfile,
 } from "@/lib/journalists";
+import {
+  followJournalist,
+  unfollowJournalist,
+  getFollowedJournalists,
+} from "@/lib/follows";
+import { useTheme } from "@/hooks/use-theme";
+import { cn } from "@/lib/utils";
 
 interface JournalistPageProps {
   params: Promise<{
@@ -56,8 +63,13 @@ const CredibilityIcon = ({ level }: { level: 1 | 2 | 3 }) => {
   );
 };
 
-const ProfileSkeleton = () => (
-  <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
+const ProfileSkeleton = ({ theme }: { theme: "light" | "dark" }) => (
+  <Card
+    className={cn(
+      "p-6 rounded-2xl border bg-card",
+      theme === "light" ? "border-gray-300" : "border-[rgb(57,57,57)]"
+    )}
+  >
     <div className="flex gap-4 items-start">
       <div className="size-20 rounded-full bg-white/10 animate-pulse" />
       <div className="flex-1 space-y-3">
@@ -74,7 +86,7 @@ export default function JournalistPage({ params }: JournalistPageProps) {
   const router = useRouter();
   const resolvedParams = use(params);
   const username = decodeURIComponent(resolvedParams.username);
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const { theme, setTheme } = useTheme();
   const [activeMenu, setActiveMenu] = useState<
     "home" | "search" | "favorites" | null
   >("search");
@@ -82,16 +94,7 @@ export default function JournalistPage({ params }: JournalistPageProps) {
   const [profile, setProfile] = useState<JournalistProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [favorites, setFavorites] = useState<string[]>([]);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "light") {
-      root.classList.add("light");
-    } else {
-      root.classList.remove("light");
-    }
-  }, [theme]);
+  const [isFollowing, setIsFollowing] = useState<boolean>(false);
 
   useEffect(() => {
     const run = async () => {
@@ -99,16 +102,25 @@ export default function JournalistPage({ params }: JournalistPageProps) {
         setLoading(true);
         setError(null);
 
-        // 프로필 정보와 트윗 목록을 병렬로 가져오기
-        const [profileData, tweetsData] = await Promise.all([
+        // 프로필 정보, 트윗 목록, 팔로우 상태를 병렬로 가져오기
+        const [profileData, tweetsData, followedData] = await Promise.all([
           fetchJournalistProfile(username),
           fetchTweets({
             limit: 20,
             journalists: [username],
           }),
+          getFollowedJournalists(),
         ]);
 
         setTweets(tweetsData.items);
+
+        // 팔로우 상태 확인
+        if (followedData.data) {
+          const handle = `@${username}`;
+          setIsFollowing(
+            followedData.data.some((f) => f.journalist_handle === handle)
+          );
+        }
 
         // 프로필 정보가 없어도 트윗 데이터가 있으면 프로필 생성
         if (profileData) {
@@ -160,11 +172,12 @@ export default function JournalistPage({ params }: JournalistPageProps) {
     };
   }, [profile, username]);
 
-  const mappedTweets: FeedPostProps[] = tweets.map((t) => ({
+  const mappedTweets = tweets.map((t) => ({
+    tweetId: t.tweet_id,
     journalist:
       (t.author_name?.split("@")[0]?.trim() as string) || t.author_name,
     handle: `@${t.author_username}`,
-    credibility: 2,
+    credibility: 2 as 1 | 2 | 3,
     content: t.tweet_text,
     images: (t.images ?? [])
       .map((url) => normalizeTwitterMediaUrl(url)!)
@@ -175,10 +188,25 @@ export default function JournalistPage({ params }: JournalistPageProps) {
       normalizeTwitterMediaUrl(t.author_profile_image) || "/placeholder.svg",
   }));
 
-  const toggleFavorite = (id: string) => {
-    setFavorites((prev) =>
-      prev.includes(id) ? prev.filter((val) => val !== id) : [...prev, id]
-    );
+  const toggleFavorite = async () => {
+    if (!profile) return;
+
+    // 낙관적 업데이트 (UI 먼저 업데이트)
+    setIsFollowing((prev) => !prev);
+
+    // Supabase에 저장
+    const handle = `@${username}`;
+    const result = isFollowing
+      ? await unfollowJournalist(handle)
+      : await followJournalist(handle, profile.name);
+
+    if (!result.success) {
+      // 실패 시 롤백
+      setIsFollowing((prev) => !prev);
+      console.error("Toggle follow error:", result.error);
+      setError(`팔로우 실패: ${result.error}`);
+      setTimeout(() => setError(null), 3000);
+    }
   };
 
   return (
@@ -186,7 +214,6 @@ export default function JournalistPage({ params }: JournalistPageProps) {
       <Sidebar
         activeMenu={activeMenu}
         onMenuClick={(menu) => setActiveMenu(menu)}
-        selectedLeague={null}
         theme={theme}
         onThemeChange={setTheme}
       />
@@ -200,7 +227,14 @@ export default function JournalistPage({ params }: JournalistPageProps) {
                 className="absolute left-4 lg:left-6 flex items-center justify-center hover:opacity-80 transition-opacity"
                 aria-label="이전 페이지로 돌아가기"
               >
-                <div className="flex items-center justify-center size-6 rounded-full border border-[rgb(57,57,57)] bg-card">
+                <div
+                  className={cn(
+                    "flex items-center justify-center size-6 rounded-full border bg-card",
+                    theme === "light"
+                      ? "border-gray-300"
+                      : "border-[rgb(57,57,57)]"
+                  )}
+                >
                   <IoIosArrowBack className="size-4 text-white" />
                 </div>
               </button>
@@ -212,9 +246,9 @@ export default function JournalistPage({ params }: JournalistPageProps) {
 
           <div className="p-4 lg:p-6 space-y-4">
             {loading ? (
-              <ProfileSkeleton />
+              <ProfileSkeleton theme={theme} />
             ) : (
-              <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
+              <Card className="p-6 rounded-2xl border border-border dark:border-[rgb(57,57,57)] bg-card">
                 <div className="flex items-start gap-4">
                   <Image
                     src={displayProfile.avatar}
@@ -241,13 +275,20 @@ export default function JournalistPage({ params }: JournalistPageProps) {
                     </div>
                   </div>
                   <Button
-                    className="rounded-full px-5"
-                    variant={
-                      favorites.includes(username) ? "secondary" : "outline"
-                    }
-                    onClick={() => toggleFavorite(username)}
+                    className={cn(
+                      "rounded-full px-5 border",
+                      theme === "light"
+                        ? isFollowing
+                          ? "bg-white text-black border-gray-300 hover:bg-white"
+                          : "bg-black text-white border-black hover:bg-black/90"
+                        : isFollowing
+                        ? "bg-[rgb(24,24,24)] text-white border-[rgb(57,57,57)] hover:bg-[rgb(24,24,24)]"
+                        : "bg-white text-black border-[rgb(57,57,57)] hover:bg-white/90"
+                    )}
+                    variant={isFollowing ? "secondary" : "outline"}
+                    onClick={toggleFavorite}
                   >
-                    {favorites.includes(username) ? "팔로잉" : "팔로우"}
+                    {isFollowing ? "팔로잉" : "팔로우"}
                   </Button>
                 </div>
               </Card>
@@ -262,18 +303,20 @@ export default function JournalistPage({ params }: JournalistPageProps) {
                 아직 게시된 트윗이 없습니다.
               </Card>
             ) : (
-              mappedTweets.map((post) => {
-                const id = `${username}-${post.time}`;
-                return (
-                  <FeedPost
-                    key={id}
-                    {...post}
-                    isFavorited={favorites.includes(id)}
-                    onToggleFavorite={() => toggleFavorite(id)}
-                    showFollowButton={false}
-                  />
-                );
-              })
+              mappedTweets.map((post) => (
+                <FeedPost
+                  key={post.tweetId}
+                  journalist={post.journalist}
+                  handle={post.handle}
+                  credibility={post.credibility}
+                  content={post.content}
+                  images={post.images}
+                  time={post.time}
+                  link={post.link}
+                  avatar={post.avatar}
+                  showFollowButton={false}
+                />
+              ))
             )}
           </div>
         </div>

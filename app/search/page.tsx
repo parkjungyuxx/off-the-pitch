@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Search } from "lucide-react";
 import Image from "next/image";
 
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { JournalistSkeletonList } from "@/components/search/journalist-skeleton-list";
 import { useJournalistSearch } from "@/hooks/use-journalist-search";
+import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
 
 function CredibilityIcon({ level }: { level: 1 | 2 | 3 }) {
@@ -28,7 +29,7 @@ function CredibilityIcon({ level }: { level: 1 | 2 | 3 }) {
 }
 
 export default function SearchPage() {
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const { theme, setTheme } = useTheme();
   const [activeMenu, setActiveMenu] = useState<
     "home" | "search" | "favorites" | null
   >("search");
@@ -43,14 +44,6 @@ export default function SearchPage() {
     toggleFavorite,
   } = useJournalistSearch();
 
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "light") {
-      root.classList.add("light");
-    } else {
-      root.classList.remove("light");
-    }
-  }, [theme]);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -75,7 +68,14 @@ export default function SearchPage() {
           </div>
 
           <div className="p-4 lg:p-6">
-            <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
+            <Card
+              className={cn(
+                "p-6 rounded-2xl border bg-card",
+                theme === "light"
+                  ? "border-gray-300"
+                  : "border-[rgb(57,57,57)]"
+              )}
+            >
               <div className="relative mb-6">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
@@ -83,7 +83,12 @@ export default function SearchPage() {
                   placeholder="검색"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-10 h-12 rounded-2xl bg-background border border-[rgb(57,57,57)] focus-visible:border-[rgb(70,70,70)] focus-visible:border-2 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className={cn(
+                    "pl-10 pr-10 h-12 rounded-2xl bg-background focus-visible:border-2 focus-visible:ring-0 focus-visible:ring-offset-0",
+                    theme === "light"
+                      ? "border-gray-300 focus-visible:border-gray-400"
+                      : "border-[rgb(57,57,57)] focus-visible:border-[rgb(70,70,70)]"
+                  )}
                 />
               </div>
 
@@ -147,10 +152,14 @@ export default function SearchPage() {
                           size="sm"
                           variant={isFavorited ? "secondary" : "outline"}
                           className={cn(
-                            "rounded-full px-4 h-8 text-xs font-medium transition-all border border-[rgb(57,57,57)] shrink-0",
-                            isFavorited
-                              ? "bg-[rgb(24,24,24)] text-white hover:bg-[rgb(24,24,24)]"
-                              : "bg-white text-black hover:bg-white/90"
+                            "rounded-full px-4 h-8 text-xs font-medium transition-all border shrink-0",
+                            theme === "light"
+                              ? isFavorited
+                                ? "bg-white text-black border-gray-300 hover:bg-white"
+                                : "bg-black text-white border-black hover:bg-black/90"
+                              : isFavorited
+                                ? "bg-[rgb(24,24,24)] text-white border-[rgb(57,57,57)] hover:bg-[rgb(24,24,24)]"
+                                : "bg-white text-black border-[rgb(57,57,57)] hover:bg-white/90"
                           )}
                         >
                           {isFavorited ? "팔로잉" : "팔로우"}
