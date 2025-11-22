@@ -301,11 +301,7 @@ export default function HomePage() {
   }, [tweets, selectedLeague]);
 
   if (checkingAuth) {
-    return (
-      <div className="flex min-h-screen bg-background items-center justify-center">
-        <p className="text-muted-foreground text-sm">로딩 중…</p>
-      </div>
-    );
+    return null;
   }
 
   return (
