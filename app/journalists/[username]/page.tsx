@@ -15,6 +15,11 @@ import {
   fetchJournalistProfile,
   type JournalistProfile,
 } from "@/lib/journalists";
+import {
+  followJournalist,
+  unfollowJournalist,
+  getFollowedJournalists,
+} from "@/lib/follows";
 import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
 
@@ -91,7 +96,7 @@ export default function JournalistPage({ params }: JournalistPageProps) {
   const [profile, setProfile] = useState<JournalistProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [favorites, setFavorites] = useState<string[]>([]);
+  const [isFollowing, setIsFollowing] = useState<boolean>(false);
 
 
   useEffect(() => {
@@ -100,16 +105,25 @@ export default function JournalistPage({ params }: JournalistPageProps) {
         setLoading(true);
         setError(null);
 
-        // 프로필 정보와 트윗 목록을 병렬로 가져오기
-        const [profileData, tweetsData] = await Promise.all([
+        // 프로필 정보, 트윗 목록, 팔로우 상태를 병렬로 가져오기
+        const [profileData, tweetsData, followedData] = await Promise.all([
           fetchJournalistProfile(username),
           fetchTweets({
             limit: 20,
             journalists: [username],
           }),
+          getFollowedJournalists(),
         ]);
 
         setTweets(tweetsData.items);
+
+        // 팔로우 상태 확인
+        if (followedData.data) {
+          const handle = `@${username}`;
+          setIsFollowing(
+            followedData.data.some((f) => f.journalist_handle === handle)
+          );
+        }
 
         // 프로필 정보가 없어도 트윗 데이터가 있으면 프로필 생성
         if (profileData) {
@@ -176,10 +190,25 @@ export default function JournalistPage({ params }: JournalistPageProps) {
       normalizeTwitterMediaUrl(t.author_profile_image) || "/placeholder.svg",
   }));
 
-  const toggleFavorite = (id: string) => {
-    setFavorites((prev) =>
-      prev.includes(id) ? prev.filter((val) => val !== id) : [...prev, id]
-    );
+  const toggleFavorite = async () => {
+    if (!profile) return;
+
+    // 낙관적 업데이트 (UI 먼저 업데이트)
+    setIsFollowing((prev) => !prev);
+
+    // Supabase에 저장
+    const handle = `@${username}`;
+    const result = isFollowing
+      ? await unfollowJournalist(handle)
+      : await followJournalist(handle, profile.name);
+
+    if (!result.success) {
+      // 실패 시 롤백
+      setIsFollowing((prev) => !prev);
+      console.error("Toggle follow error:", result.error);
+      setError(`팔로우 실패: ${result.error}`);
+      setTimeout(() => setError(null), 3000);
+    }
   };
 
   return (
@@ -245,19 +274,17 @@ export default function JournalistPage({ params }: JournalistPageProps) {
                     className={cn(
                       "rounded-full px-5 border",
                       theme === "light"
-                        ? favorites.includes(username)
+                        ? isFollowing
                           ? "bg-white text-black border-gray-300 hover:bg-white"
                           : "bg-black text-white border-black hover:bg-black/90"
-                        : favorites.includes(username)
+                        : isFollowing
                           ? "bg-[rgb(24,24,24)] text-white border-[rgb(57,57,57)] hover:bg-[rgb(24,24,24)]"
                           : "bg-white text-black border-[rgb(57,57,57)] hover:bg-white/90"
                     )}
-                    variant={
-                      favorites.includes(username) ? "secondary" : "outline"
-                    }
-                    onClick={() => toggleFavorite(username)}
+                    variant={isFollowing ? "secondary" : "outline"}
+                    onClick={toggleFavorite}
                   >
-                    {favorites.includes(username) ? "팔로잉" : "팔로우"}
+                    {isFollowing ? "팔로잉" : "팔로우"}
                   </Button>
                 </div>
               </Card>
@@ -278,8 +305,6 @@ export default function JournalistPage({ params }: JournalistPageProps) {
                   <FeedPost
                     key={id}
                     {...post}
-                    isFavorited={favorites.includes(id)}
-                    onToggleFavorite={() => toggleFavorite(id)}
                     showFollowButton={false}
                   />
                 );
