@@ -6,6 +6,7 @@ import Image from "next/image";
 import { ExternalLink, Languages } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
 
 export interface FeedPostProps {
@@ -35,6 +36,7 @@ export function FeedPost({
   onToggleFavorite,
   showFollowButton = true,
 }: FeedPostProps) {
+  const { theme } = useTheme();
   const [isTranslated, setIsTranslated] = useState(false);
   const [failedImageIdx, setFailedImageIdx] = useState<Set<number>>(new Set());
 
@@ -86,10 +88,14 @@ export function FeedPost({
                   size="sm"
                   variant={isFavorited ? "secondary" : "outline"}
                   className={cn(
-                    "rounded-full px-4 h-8 text-xs font-medium transition-all border border-[rgb(57,57,57)]",
-                    isFavorited
-                      ? "bg-[rgb(24,24,24)] text-white hover:bg-[rgb(24,24,24)]"
-                      : "bg-white text-black hover:bg-white/90"
+                    "rounded-full px-4 h-8 text-xs font-medium transition-all border",
+                    theme === "light"
+                      ? isFavorited
+                        ? "bg-white text-black border-gray-300 hover:bg-white"
+                        : "bg-black text-white border-black hover:bg-black/90"
+                      : isFavorited
+                        ? "bg-[rgb(24,24,24)] text-white border-[rgb(57,57,57)] hover:bg-[rgb(24,24,24)]"
+                        : "bg-white text-black border-[rgb(57,57,57)] hover:bg-white/90"
                   )}
                 >
                   {isFavorited ? "팔로잉" : "팔로우"}

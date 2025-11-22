@@ -152,10 +152,14 @@ export default function SearchPage() {
                           size="sm"
                           variant={isFavorited ? "secondary" : "outline"}
                           className={cn(
-                            "rounded-full px-4 h-8 text-xs font-medium transition-all border border-[rgb(57,57,57)] shrink-0",
-                            isFavorited
-                              ? "bg-[rgb(24,24,24)] text-white hover:bg-[rgb(24,24,24)]"
-                              : "bg-white text-black hover:bg-white/90"
+                            "rounded-full px-4 h-8 text-xs font-medium transition-all border shrink-0",
+                            theme === "light"
+                              ? isFavorited
+                                ? "bg-white text-black border-gray-300 hover:bg-white"
+                                : "bg-black text-white border-black hover:bg-black/90"
+                              : isFavorited
+                                ? "bg-[rgb(24,24,24)] text-white border-[rgb(57,57,57)] hover:bg-[rgb(24,24,24)]"
+                                : "bg-white text-black border-[rgb(57,57,57)] hover:bg-white/90"
                           )}
                         >
                           {isFavorited ? "팔로잉" : "팔로우"}

@@ -242,7 +242,16 @@ export default function JournalistPage({ params }: JournalistPageProps) {
                     </div>
                   </div>
                   <Button
-                    className="rounded-full px-5"
+                    className={cn(
+                      "rounded-full px-5 border",
+                      theme === "light"
+                        ? favorites.includes(username)
+                          ? "bg-white text-black border-gray-300 hover:bg-white"
+                          : "bg-black text-white border-black hover:bg-black/90"
+                        : favorites.includes(username)
+                          ? "bg-[rgb(24,24,24)] text-white border-[rgb(57,57,57)] hover:bg-[rgb(24,24,24)]"
+                          : "bg-white text-black border-[rgb(57,57,57)] hover:bg-white/90"
+                    )}
                     variant={
                       favorites.includes(username) ? "secondary" : "outline"
                     }
