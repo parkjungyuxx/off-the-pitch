@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Sidebar } from "@/components/sidebar";
 import { FeedPost, type FeedPostProps } from "@/components/feed-post";
+import { FeedPostSkeleton } from "@/components/feed-post-skeleton";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase-client";
 import { cn } from "@/lib/utils";
@@ -201,11 +202,7 @@ export default function FavoritesPage() {
   };
 
   if (checkingAuth) {
-    return (
-      <div className="flex min-h-screen bg-background items-center justify-center">
-        <p className="text-muted-foreground text-sm">로딩 중…</p>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -270,9 +267,10 @@ export default function FavoritesPage() {
           )}
 
           <div className="p-4 lg:p-6 space-y-4">
-            {loading && (
-              <p className="text-muted-foreground text-sm">로딩 중…</p>
-            )}
+            {loading &&
+              Array.from({ length: 3 }).map((_, idx) => (
+                <FeedPostSkeleton key={idx} />
+              ))}
             {error && <p className="text-destructive text-sm">{error}</p>}
             {!loading &&
               !error &&
