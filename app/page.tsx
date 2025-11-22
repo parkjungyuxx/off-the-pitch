@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { IoIosArrowDown } from "react-icons/io";
 import { Sidebar } from "@/components/sidebar";
 import { FeedPost, type FeedPostProps } from "@/components/feed-post";
@@ -418,6 +419,31 @@ export default function HomePage() {
           </div>
         </div>
       </main>
+
+      {/* AI 챗봇 플로팅 버튼 */}
+      <button
+        className={cn(
+          "fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg",
+          "hover:scale-105 active:scale-95 transition-transform",
+          "flex items-center justify-center",
+          "bg-background border border-border",
+          "hover:bg-sidebar-accent",
+          "z-50"
+        )}
+        onClick={() => {
+          // TODO: AI 챗봇 모달 열기
+          console.log("AI 챗봇 클릭");
+        }}
+        aria-label="오늘의 이적시장 요약"
+      >
+        <Image
+          src="/summary-icon.svg"
+          alt="AI 챗봇"
+          width={28}
+          height={28}
+          className={cn("w-7 h-7", theme === "dark" && "invert")}
+        />
+      </button>
     </div>
   );
 }
