@@ -57,7 +57,7 @@ export function Sidebar({
                 alt="OFF THE PITCH"
                 width={34}
                 height={34}
-                className="rounded-full"
+                className={cn("rounded-full", theme === "light" && "invert")}
               />
             </div>
           </Link>
