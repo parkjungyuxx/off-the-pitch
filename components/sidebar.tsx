@@ -130,7 +130,12 @@ export function Sidebar({
           <PopoverContent
             side="right"
             align="end"
-            className="w-48 p-2 bg-[#141414] border-[#1a1a1a]"
+            className={cn(
+              "w-48 p-2",
+              theme === "light"
+                ? "bg-white border-gray-300"
+                : "bg-[#141414] border-[#1a1a1a]"
+            )}
           >
             <div className="space-y-1">
               <Button
@@ -231,7 +236,12 @@ export function Sidebar({
           <PopoverContent
             side="top"
             align="end"
-            className="w-48 p-2 bg-[#141414] border-[#1a1a1a]"
+            className={cn(
+              "w-48 p-2",
+              theme === "light"
+                ? "bg-white border-gray-300"
+                : "bg-[#141414] border-[#1a1a1a]"
+            )}
           >
             <div className="space-y-1">
               <Button
