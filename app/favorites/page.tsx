@@ -215,13 +215,12 @@ export default function FavoritesPage() {
         onMenuClick={(menu) => {
           setActiveMenu(menu);
         }}
-        selectedLeague={null}
         theme={theme}
         onThemeChange={setTheme}
       />
 
-      <main className="flex-1 ml-0 lg:ml-20">
-        <div className="max-w-2xl mx-auto">
+      <main className="flex-1 ml-0 lg:ml-20 w-full overflow-x-hidden">
+        <div className="max-w-2xl mx-auto w-full">
           <div className="sticky top-0 z-10 backdrop-blur-xl bg-background/80">
             <div className="px-4 lg:px-6 py-6">
               <h1 className="text-3xl font-display font-bold tracking-wide text-balance">
@@ -231,7 +230,7 @@ export default function FavoritesPage() {
           </div>
 
           {followedJournalistsList.length > 0 && (
-            <div className="px-4 lg:px-6 pt-4 pb-2">
+            <div className="px-4 lg:px-6 pt-4 pb-2 min-w-0 overflow-hidden">
               <div
                 ref={scrollRef}
                 className="flex items-center gap-3 overflow-x-auto scrollbar-hide"
