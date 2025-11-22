@@ -25,9 +25,7 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Send, Loader2, XIcon } from "lucide-react";
+import { Loader2, XIcon } from "lucide-react";
 import { getDailySummary } from "@/lib/summarize";
 
 const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
@@ -619,40 +617,6 @@ export default function HomePage() {
                 </div>
               </div>
             ) : null}
-          </div>
-
-          {/* 입력 영역 */}
-          <div className="px-6 py-4 border-t border-border dark:border-[rgb(57,57,57)]">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                // TODO: AI 요약 요청
-              }}
-              className="flex gap-2"
-            >
-              <Input
-                placeholder="궁금한것을 물어보세요!"
-                className={cn(
-                  "flex-1",
-                  theme === "light"
-                    ? "border-gray-300 focus:border-gray-400"
-                    : "border-[rgb(57,57,57)] focus:border-[rgb(70,70,70)]"
-                )}
-              />
-              <Button
-                type="submit"
-                size="icon"
-                className={cn(
-                  "shrink-0",
-                  theme === "light"
-                    ? "bg-black text-white hover:bg-black/90"
-                    : "bg-primary text-white hover:bg-primary/90"
-                )}
-              >
-                <Send className="w-4 h-4" />
-                <span className="sr-only">전송</span>
-              </Button>
-            </form>
           </div>
         </DialogContent>
       </Dialog>
