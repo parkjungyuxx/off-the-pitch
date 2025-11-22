@@ -42,7 +42,7 @@ export function FeedPost({
   const username = handle.replace(/^@/, "");
 
   return (
-    <Card className="p-4 lg:p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card hover:bg-card/80 transition-all cursor-pointer group shadow-lg hover:shadow-xl w-full max-w-full overflow-hidden">
+    <Card className="p-4 lg:p-6 rounded-2xl border border-border dark:border-[rgb(57,57,57)] bg-card hover:bg-card/80 transition-all cursor-pointer group shadow-lg hover:shadow-xl w-full max-w-full overflow-hidden">
       <div className="flex gap-3 lg:gap-4">
         {/* 프로필 이미지 */}
         <Link href={`/journalists/${username}`} className="shrink-0">
