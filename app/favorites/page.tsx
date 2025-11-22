@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Sidebar } from "@/components/sidebar";
 import { FeedPost, type FeedPostProps } from "@/components/feed-post";
 import { FeedPostSkeleton } from "@/components/feed-post-skeleton";
+import { JournalistAvatarSkeleton } from "@/components/journalist-avatar-skeleton";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase-client";
 import { cn } from "@/lib/utils";
@@ -226,13 +227,18 @@ export default function FavoritesPage() {
             </div>
           </div>
 
-          {followedJournalistsList.length > 0 && (
+          {(loading || followedJournalistsList.length > 0) && (
             <div className="px-4 lg:px-6 pt-4 pb-2 min-w-0 overflow-hidden">
               <div
                 ref={scrollRef}
                 className="flex items-center gap-3 overflow-x-auto scrollbar-hide"
               >
-                {followedJournalistsList.map((journalist) => {
+                {loading ? (
+                  Array.from({ length: 6 }).map((_, idx) => (
+                    <JournalistAvatarSkeleton key={idx} />
+                  ))
+                ) : (
+                  followedJournalistsList.map((journalist) => {
                   const isSelected = selectedJournalist === journalist.handle;
                   return (
                     <button
@@ -261,7 +267,8 @@ export default function FavoritesPage() {
                       />
                     </button>
                   );
-                })}
+                  })
+                )}
               </div>
             </div>
           )}
