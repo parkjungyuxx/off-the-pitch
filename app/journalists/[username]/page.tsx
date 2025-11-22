@@ -8,7 +8,7 @@ import { IoIosArrowBack } from "react-icons/io";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { FeedPost, type FeedPostProps } from "@/components/feed-post";
+import { FeedPost } from "@/components/feed-post";
 import { JournalistSkeletonList } from "@/components/search/journalist-skeleton-list";
 import { fetchTweets, type Tweet } from "@/lib/tweets";
 import {
@@ -177,7 +177,7 @@ export default function JournalistPage({ params }: JournalistPageProps) {
     journalist:
       (t.author_name?.split("@")[0]?.trim() as string) || t.author_name,
     handle: `@${t.author_username}`,
-    credibility: 2,
+    credibility: 2 as 1 | 2 | 3,
     content: t.tweet_text,
     images: (t.images ?? [])
       .map((url) => normalizeTwitterMediaUrl(url)!)
@@ -214,7 +214,6 @@ export default function JournalistPage({ params }: JournalistPageProps) {
       <Sidebar
         activeMenu={activeMenu}
         onMenuClick={(menu) => setActiveMenu(menu)}
-        selectedLeague={null}
         theme={theme}
         onThemeChange={setTheme}
       />
