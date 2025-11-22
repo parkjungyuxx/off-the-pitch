@@ -227,7 +227,14 @@ export default function JournalistPage({ params }: JournalistPageProps) {
                 className="absolute left-4 lg:left-6 flex items-center justify-center hover:opacity-80 transition-opacity"
                 aria-label="이전 페이지로 돌아가기"
               >
-                <div className="flex items-center justify-center size-6 rounded-full border border-[rgb(57,57,57)] bg-card">
+                <div
+                  className={cn(
+                    "flex items-center justify-center size-6 rounded-full border bg-card",
+                    theme === "light"
+                      ? "border-gray-300"
+                      : "border-[rgb(57,57,57)]"
+                  )}
+                >
                   <IoIosArrowBack className="size-4 text-white" />
                 </div>
               </button>
@@ -241,7 +248,7 @@ export default function JournalistPage({ params }: JournalistPageProps) {
             {loading ? (
               <ProfileSkeleton theme={theme} />
             ) : (
-              <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
+              <Card className="p-6 rounded-2xl border border-border dark:border-[rgb(57,57,57)] bg-card">
                 <div className="flex items-start gap-4">
                   <Image
                     src={displayProfile.avatar}
