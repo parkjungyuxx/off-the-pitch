@@ -18,6 +18,15 @@ import {
   getFollowedJournalists,
 } from "@/lib/follows";
 import { useTheme } from "@/hooks/use-theme";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Send } from "lucide-react";
 
 const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
   if (!url) return undefined;
@@ -165,6 +174,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
+  const [isChatModalOpen, setIsChatModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -430,10 +440,7 @@ export default function HomePage() {
           "hover:bg-sidebar-accent",
           "z-50"
         )}
-        onClick={() => {
-          // TODO: AI 챗봇 모달 열기
-          console.log("AI 챗봇 클릭");
-        }}
+        onClick={() => setIsChatModalOpen(true)}
         aria-label="오늘의 이적시장 요약"
       >
         <Image
@@ -444,6 +451,100 @@ export default function HomePage() {
           className={cn("w-7 h-7", theme === "dark" && "invert")}
         />
       </button>
+
+      {/* AI 챗봇 모달 */}
+      <Dialog open={isChatModalOpen} onOpenChange={setIsChatModalOpen}>
+        <DialogContent
+          className={cn(
+            "max-w-2xl h-[80vh] p-0 flex flex-col",
+            theme === "light"
+              ? "bg-white border-gray-300"
+              : "bg-[#141414] border-[rgb(57,57,57)]"
+          )}
+        >
+          {/* 채팅 헤더 */}
+          <DialogHeader className="px-6 py-4 border-b border-border dark:border-[rgb(57,57,57)]">
+            <div className="flex items-center gap-3">
+              <Image
+                src="/summary-icon.svg"
+                alt="AI 챗봇"
+                width={32}
+                height={32}
+                className={cn("w-8 h-8", theme === "dark" && "invert")}
+              />
+              <DialogTitle className="text-lg font-semibold">
+                오늘의 이적시장 요약
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+
+          {/* 채팅 메시지 영역 */}
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            <div className="flex gap-3">
+              <div className="shrink-0">
+                <Image
+                  src="/summary-icon.svg"
+                  alt="AI"
+                  width={24}
+                  height={24}
+                  className={cn(
+                    "w-6 h-6 rounded-full",
+                    theme === "dark" && "invert"
+                  )}
+                />
+              </div>
+              <div className="flex-1">
+                <div
+                  className={cn(
+                    "rounded-2xl px-4 py-3 max-w-[80%]",
+                    theme === "light"
+                      ? "bg-gray-100 text-gray-900"
+                      : "bg-[#181818] text-white"
+                  )}
+                >
+                  <p className="text-sm leading-relaxed">
+                    안녕하세요! 오늘의 이적시장 뉴스를 요약해드릴까요?
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 입력 영역 */}
+          <div className="px-6 py-4 border-t border-border dark:border-[rgb(57,57,57)]">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                // TODO: AI 요약 요청
+              }}
+              className="flex gap-2"
+            >
+              <Input
+                placeholder="오늘의 이적시장 뉴스를 요약해주세요"
+                className={cn(
+                  "flex-1",
+                  theme === "light"
+                    ? "border-gray-300 focus:border-gray-400"
+                    : "border-[rgb(57,57,57)] focus:border-[rgb(70,70,70)]"
+                )}
+              />
+              <Button
+                type="submit"
+                size="icon"
+                className={cn(
+                  "shrink-0",
+                  theme === "light"
+                    ? "bg-black text-white hover:bg-black/90"
+                    : "bg-primary text-white hover:bg-primary/90"
+                )}
+              >
+                <Send className="w-4 h-4" />
+                <span className="sr-only">전송</span>
+              </Button>
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
