@@ -331,7 +331,14 @@ export default function HomePage() {
                   aria-controls="league-selector"
                   aria-label="리그 선택 열기"
                 >
-                  <div className="flex items-center justify-center size-7 rounded-full border border-[rgb(57,57,57)] bg-card hover:border-white/40 transition-colors">
+                  <div
+                    className={cn(
+                      "flex items-center justify-center size-7 rounded-full border bg-card hover:border-white/40 transition-colors",
+                      theme === "light"
+                        ? "border-gray-300"
+                        : "border-[rgb(57,57,57)]"
+                    )}
+                  >
                     <IoIosArrowDown
                       className={cn(
                         "size-4 text-white transition-transform",
