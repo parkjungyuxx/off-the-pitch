@@ -143,13 +143,14 @@ export function FeedPost({
             aria-live="polite"
             aria-atomic="true"
           >
-            {isTranslating ? (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>번역 중...</span>
-              </div>
-            ) : translateError ? (
+            {translateError ? (
               <div className="text-destructive text-sm">{translateError}</div>
+            ) : isTranslating ? (
+              <div className="space-y-2">
+                <div className="h-4 w-full bg-muted rounded animate-pulse" />
+                <div className="h-4 w-full bg-muted rounded animate-pulse" />
+                <div className="h-4 w-3/4 bg-muted rounded animate-pulse" />
+              </div>
             ) : (
               <p>{isTranslated ? translatedContent : content}</p>
             )}
