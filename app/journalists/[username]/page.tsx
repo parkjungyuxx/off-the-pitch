@@ -15,6 +15,7 @@ import {
   fetchJournalistProfile,
   type JournalistProfile,
 } from "@/lib/journalists";
+import { useTheme } from "@/hooks/use-theme";
 
 interface JournalistPageProps {
   params: Promise<{
@@ -74,7 +75,7 @@ export default function JournalistPage({ params }: JournalistPageProps) {
   const router = useRouter();
   const resolvedParams = use(params);
   const username = decodeURIComponent(resolvedParams.username);
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const { theme, setTheme } = useTheme();
   const [activeMenu, setActiveMenu] = useState<
     "home" | "search" | "favorites" | null
   >("search");
@@ -84,14 +85,6 @@ export default function JournalistPage({ params }: JournalistPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
 
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "light") {
-      root.classList.add("light");
-    } else {
-      root.classList.remove("light");
-    }
-  }, [theme]);
 
   useEffect(() => {
     const run = async () => {

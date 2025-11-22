@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Search } from "lucide-react";
 import Image from "next/image";
 
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { JournalistSkeletonList } from "@/components/search/journalist-skeleton-list";
 import { useJournalistSearch } from "@/hooks/use-journalist-search";
+import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
 
 function CredibilityIcon({ level }: { level: 1 | 2 | 3 }) {
@@ -28,7 +29,7 @@ function CredibilityIcon({ level }: { level: 1 | 2 | 3 }) {
 }
 
 export default function SearchPage() {
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const { theme, setTheme } = useTheme();
   const [activeMenu, setActiveMenu] = useState<
     "home" | "search" | "favorites" | null
   >("search");
@@ -43,14 +44,6 @@ export default function SearchPage() {
     toggleFavorite,
   } = useJournalistSearch();
 
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "light") {
-      root.classList.add("light");
-    } else {
-      root.classList.remove("light");
-    }
-  }, [theme]);
 
   return (
     <div className="flex min-h-screen bg-background">

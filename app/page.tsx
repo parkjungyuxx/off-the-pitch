@@ -16,6 +16,7 @@ import {
   unfollowJournalist,
   getFollowedJournalists,
 } from "@/lib/follows";
+import { useTheme } from "@/hooks/use-theme";
 
 const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
   if (!url) return undefined;
@@ -153,7 +154,7 @@ export default function HomePage() {
   const [followedJournalists, setFollowedJournalists] = useState<Set<string>>(
     new Set()
   );
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const { theme, setTheme } = useTheme();
   const [activeMenu, setActiveMenu] = useState<
     "home" | "search" | "favorites" | null
   >("home");
@@ -183,15 +184,6 @@ export default function HomePage() {
     };
     checkSession();
   }, [router, supabase]);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "light") {
-      root.classList.add("light");
-    } else {
-      root.classList.remove("light");
-    }
-  }, [theme]);
 
   useEffect(() => {
     const loadData = async () => {
