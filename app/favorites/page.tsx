@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Sidebar } from "@/components/sidebar";
 import { FeedPost, type FeedPostProps } from "@/components/feed-post";
+import { FeedPostSkeleton } from "@/components/feed-post-skeleton";
+import { JournalistAvatarSkeleton } from "@/components/journalist-avatar-skeleton";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase-client";
 import { cn } from "@/lib/utils";
@@ -201,11 +203,7 @@ export default function FavoritesPage() {
   };
 
   if (checkingAuth) {
-    return (
-      <div className="flex min-h-screen bg-background items-center justify-center">
-        <p className="text-muted-foreground text-sm">로딩 중…</p>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -215,13 +213,12 @@ export default function FavoritesPage() {
         onMenuClick={(menu) => {
           setActiveMenu(menu);
         }}
-        selectedLeague={null}
         theme={theme}
         onThemeChange={setTheme}
       />
 
-      <main className="flex-1 ml-0 lg:ml-20">
-        <div className="max-w-2xl mx-auto">
+      <main className="flex-1 ml-0 lg:ml-20 w-full overflow-x-hidden">
+        <div className="max-w-2xl mx-auto w-full">
           <div className="sticky top-0 z-10 backdrop-blur-xl bg-background/80">
             <div className="px-4 lg:px-6 py-6">
               <h1 className="text-3xl font-display font-bold tracking-wide text-balance">
@@ -230,13 +227,18 @@ export default function FavoritesPage() {
             </div>
           </div>
 
-          {followedJournalistsList.length > 0 && (
-            <div className="px-4 lg:px-6 pt-4 pb-2">
+          {(loading || followedJournalistsList.length > 0) && (
+            <div className="px-4 lg:px-6 pt-4 pb-2 min-w-0 overflow-hidden">
               <div
                 ref={scrollRef}
                 className="flex items-center gap-3 overflow-x-auto scrollbar-hide"
               >
-                {followedJournalistsList.map((journalist) => {
+                {loading ? (
+                  Array.from({ length: 6 }).map((_, idx) => (
+                    <JournalistAvatarSkeleton key={idx} />
+                  ))
+                ) : (
+                  followedJournalistsList.map((journalist) => {
                   const isSelected = selectedJournalist === journalist.handle;
                   return (
                     <button
@@ -265,15 +267,17 @@ export default function FavoritesPage() {
                       />
                     </button>
                   );
-                })}
+                  })
+                )}
               </div>
             </div>
           )}
 
           <div className="p-4 lg:p-6 space-y-4">
-            {loading && (
-              <p className="text-muted-foreground text-sm">로딩 중…</p>
-            )}
+            {loading &&
+              Array.from({ length: 3 }).map((_, idx) => (
+                <FeedPostSkeleton key={idx} />
+              ))}
             {error && <p className="text-destructive text-sm">{error}</p>}
             {!loading &&
               !error &&

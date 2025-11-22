@@ -42,8 +42,8 @@ export function FeedPost({
   const username = handle.replace(/^@/, "");
 
   return (
-    <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card hover:bg-card/80 transition-all cursor-pointer group shadow-lg hover:shadow-xl">
-      <div className="flex gap-4">
+    <Card className="p-4 lg:p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card hover:bg-card/80 transition-all cursor-pointer group shadow-lg hover:shadow-xl w-full max-w-full overflow-hidden">
+      <div className="flex gap-3 lg:gap-4">
         {/* 프로필 이미지 */}
         <Link href={`/journalists/${username}`} className="shrink-0">
           <Image
@@ -51,12 +51,12 @@ export function FeedPost({
             alt={journalist}
             width={48}
             height={48}
-            className="rounded-full hover:opacity-80 transition-opacity"
+            className="rounded-full hover:opacity-80 transition-opacity size-10 lg:size-12"
           />
         </Link>
 
         {/* 본문 영역 */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 overflow-hidden">
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="flex items-center gap-2 min-w-0 flex-wrap">
               <Link
@@ -103,30 +103,32 @@ export function FeedPost({
           </p>
 
           {images && images.length > 0 && (
-            <div className="mt-3 grid grid-cols-1 gap-2">
+            <div className="mt-3 grid grid-cols-1 gap-2 max-w-full overflow-hidden">
               {images.slice(0, 4).map((src, idx) => {
                 if (!src || failedImageIdx.has(idx)) return null;
                 return (
-                  <Image
-                    key={idx}
-                    src={src}
-                    alt={`${journalist} media ${idx + 1}`}
-                    width={0}
-                    height={0}
-                    sizes="100vw"
-                    unoptimized
-                    loading="lazy"
-                    decoding="async"
-                    referrerPolicy="no-referrer"
-                    className="w-full h-auto rounded-2xl object-cover bg-muted"
-                    onError={() => {
-                      setFailedImageIdx((prev) => {
-                        const next = new Set(prev);
-                        next.add(idx);
-                        return next;
-                      });
-                    }}
-                  />
+                  <div key={idx} className="w-full max-w-full overflow-hidden rounded-2xl">
+                    <Image
+                      src={src}
+                      alt={`${journalist} media ${idx + 1}`}
+                      width={672}
+                      height={400}
+                      sizes="(max-width: 768px) calc(100vw - 3rem), 672px"
+                      unoptimized
+                      loading="lazy"
+                      decoding="async"
+                      referrerPolicy="no-referrer"
+                      className="w-full h-auto rounded-2xl object-cover bg-muted"
+                      style={{ maxWidth: '100%', height: 'auto' }}
+                      onError={() => {
+                        setFailedImageIdx((prev) => {
+                          const next = new Set(prev);
+                          next.add(idx);
+                          return next;
+                        });
+                      }}
+                    />
+                  </div>
                 );
               })}
             </div>

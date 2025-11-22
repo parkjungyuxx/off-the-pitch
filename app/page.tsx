@@ -319,8 +319,8 @@ export default function HomePage() {
         onThemeChange={setTheme}
       />
 
-      <main className="flex-1 ml-0 lg:ml-20">
-        <div className="max-w-2xl mx-auto">
+      <main className="flex-1 ml-0 lg:ml-20 w-full overflow-x-hidden">
+        <div className="max-w-2xl mx-auto w-full">
           <div className="sticky top-0 z-10 backdrop-blur-xl bg-background/80">
             <div className="px-4 lg:px-6 py-6">
               <h1 className="text-3xl font-display font-bold tracking-wide text-balance">
