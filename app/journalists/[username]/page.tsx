@@ -16,6 +16,7 @@ import {
   type JournalistProfile,
 } from "@/lib/journalists";
 import { useTheme } from "@/hooks/use-theme";
+import { cn } from "@/lib/utils";
 
 interface JournalistPageProps {
   params: Promise<{
@@ -57,8 +58,15 @@ const CredibilityIcon = ({ level }: { level: 1 | 2 | 3 }) => {
   );
 };
 
-const ProfileSkeleton = () => (
-  <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
+const ProfileSkeleton = ({ theme }: { theme: "light" | "dark" }) => (
+  <Card
+    className={cn(
+      "p-6 rounded-2xl border bg-card",
+      theme === "light"
+        ? "border-gray-300"
+        : "border-[rgb(57,57,57)]"
+    )}
+  >
     <div className="flex gap-4 items-start">
       <div className="size-20 rounded-full bg-white/10 animate-pulse" />
       <div className="flex-1 space-y-3">
@@ -205,7 +213,7 @@ export default function JournalistPage({ params }: JournalistPageProps) {
 
           <div className="p-4 lg:p-6 space-y-4">
             {loading ? (
-              <ProfileSkeleton />
+              <ProfileSkeleton theme={theme} />
             ) : (
               <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
                 <div className="flex items-start gap-4">
