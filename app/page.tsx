@@ -23,10 +23,11 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, XIcon } from "lucide-react";
 import { getDailySummary } from "@/lib/summarize";
 
 const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
@@ -491,6 +492,7 @@ export default function HomePage() {
         }}
       >
         <DialogContent
+          showCloseButton={false}
           className={cn(
             "max-w-2xl h-[80vh] p-0 flex flex-col",
             theme === "light"
@@ -499,7 +501,7 @@ export default function HomePage() {
           )}
         >
           {/* 채팅 헤더 */}
-          <DialogHeader className="px-6 py-4 border-b border-border dark:border-[rgb(57,57,57)]">
+          <DialogHeader className="px-6 py-4 border-b border-border dark:border-[rgb(57,57,57)] relative">
             <div className="flex items-center gap-3">
               <Image
                 src="/summary-icon.svg"
@@ -512,6 +514,17 @@ export default function HomePage() {
                 오늘의 이적시장 요약
               </DialogTitle>
             </div>
+            {/* 커스텀 닫기 버튼 (주황색 보더 없음) */}
+            <DialogClose
+              className={cn(
+                "absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100",
+                "focus:outline-none focus:ring-0",
+                "disabled:pointer-events-none"
+              )}
+            >
+              <XIcon className="w-4 h-4" />
+              <span className="sr-only">Close</span>
+            </DialogClose>
           </DialogHeader>
 
           {/* 채팅 메시지 영역 */}
@@ -618,7 +631,7 @@ export default function HomePage() {
               className="flex gap-2"
             >
               <Input
-                placeholder="오늘의 이적시장 뉴스를 요약해주세요"
+                placeholder="궁금한것을 물어보세요!"
                 className={cn(
                   "flex-1",
                   theme === "light"
