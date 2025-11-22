@@ -26,7 +26,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send } from "lucide-react";
+import { Send, Loader2 } from "lucide-react";
+import { getDailySummary } from "@/lib/summarize";
 
 const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
   if (!url) return undefined;
@@ -175,6 +176,9 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
   const [isChatModalOpen, setIsChatModalOpen] = useState<boolean>(false);
+  const [summary, setSummary] = useState<string>("");
+  const [isLoadingSummary, setIsLoadingSummary] = useState<boolean>(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -195,6 +199,28 @@ export default function HomePage() {
     };
     checkSession();
   }, [router, supabase]);
+
+  // 모달 열릴 때 자동으로 요약 요청
+  useEffect(() => {
+    if (isChatModalOpen) {
+      const fetchSummary = async () => {
+        try {
+          setIsLoadingSummary(true);
+          setSummaryError(null);
+          setSummary(""); // 이전 요약 초기화
+          const result = await getDailySummary();
+          setSummary(result);
+        } catch (error) {
+          console.error("Summary fetch error:", error);
+          setSummaryError("요약을 가져오는 중 오류가 발생했습니다.");
+        } finally {
+          setIsLoadingSummary(false);
+        }
+      };
+
+      fetchSummary();
+    }
+  }, [isChatModalOpen]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -453,7 +479,17 @@ export default function HomePage() {
       </button>
 
       {/* AI 챗봇 모달 */}
-      <Dialog open={isChatModalOpen} onOpenChange={setIsChatModalOpen}>
+      <Dialog
+        open={isChatModalOpen}
+        onOpenChange={(open) => {
+          setIsChatModalOpen(open);
+          if (!open) {
+            // 모달 닫을 때 상태 초기화
+            setSummary("");
+            setSummaryError(null);
+          }
+        }}
+      >
         <DialogContent
           className={cn(
             "max-w-2xl h-[80vh] p-0 flex flex-col",
@@ -480,34 +516,96 @@ export default function HomePage() {
 
           {/* 채팅 메시지 영역 */}
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-            <div className="flex gap-3">
-              <div className="shrink-0">
-                <Image
-                  src="/summary-icon.svg"
-                  alt="AI"
-                  width={24}
-                  height={24}
-                  className={cn(
-                    "w-6 h-6 rounded-full",
-                    theme === "dark" && "invert"
-                  )}
-                />
-              </div>
-              <div className="flex-1">
-                <div
-                  className={cn(
-                    "rounded-2xl px-4 py-3 max-w-[80%]",
-                    theme === "light"
-                      ? "bg-gray-100 text-gray-900"
-                      : "bg-[#181818] text-white"
-                  )}
-                >
-                  <p className="text-sm leading-relaxed">
-                    안녕하세요! 오늘의 이적시장 뉴스를 요약해드릴까요?
-                  </p>
+            {/* 요약 메시지 */}
+            {isLoadingSummary ? (
+              <div className="flex gap-3">
+                <div className="shrink-0">
+                  <Image
+                    src="/summary-icon.svg"
+                    alt="AI"
+                    width={24}
+                    height={24}
+                    className={cn(
+                      "w-6 h-6 rounded-full",
+                      theme === "dark" && "invert"
+                    )}
+                  />
+                </div>
+                <div className="flex-1">
+                  <div
+                    className={cn(
+                      "rounded-2xl px-4 py-3 max-w-[80%]",
+                      theme === "light"
+                        ? "bg-gray-100 text-gray-900"
+                        : "bg-[#181818] text-white"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <p className="text-sm text-muted-foreground">
+                        요약을 생성하고 있어요...
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : summaryError ? (
+              <div className="flex gap-3">
+                <div className="shrink-0">
+                  <Image
+                    src="/summary-icon.svg"
+                    alt="AI"
+                    width={24}
+                    height={24}
+                    className={cn(
+                      "w-6 h-6 rounded-full",
+                      theme === "dark" && "invert"
+                    )}
+                  />
+                </div>
+                <div className="flex-1">
+                  <div
+                    className={cn(
+                      "rounded-2xl px-4 py-3 max-w-[80%]",
+                      theme === "light"
+                        ? "bg-gray-100 text-gray-900"
+                        : "bg-[#181818] text-white"
+                    )}
+                  >
+                    <p className="text-sm text-destructive">{summaryError}</p>
+                  </div>
+                </div>
+              </div>
+            ) : summary ? (
+              <div className="flex gap-3">
+                <div className="shrink-0">
+                  <Image
+                    src="/summary-icon.svg"
+                    alt="AI"
+                    width={24}
+                    height={24}
+                    className={cn(
+                      "w-6 h-6 rounded-full",
+                      theme === "dark" && "invert"
+                    )}
+                  />
+                </div>
+                <div className="flex-1">
+                  <div
+                    className={cn(
+                      "rounded-2xl px-4 py-3 max-w-[80%]",
+                      theme === "light"
+                        ? "bg-gray-100 text-gray-900"
+                        : "bg-[#181818] text-white"
+                    )}
+                  >
+                    <p className="text-sm leading-relaxed whitespace-pre-line">
+                      {summary}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {/* 입력 영역 */}
