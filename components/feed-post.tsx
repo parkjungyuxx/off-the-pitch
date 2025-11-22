@@ -3,11 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ExternalLink, Languages } from "lucide-react";
+import { ExternalLink, Languages, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
+import { translateText } from "@/lib/translate";
 
 export interface FeedPostProps {
   journalist: string;
@@ -38,10 +39,43 @@ export function FeedPost({
 }: FeedPostProps) {
   const { theme } = useTheme();
   const [isTranslated, setIsTranslated] = useState(false);
+  const [translatedContent, setTranslatedContent] = useState<string>("");
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translateError, setTranslateError] = useState<string | null>(null);
   const [failedImageIdx, setFailedImageIdx] = useState<Set<number>>(new Set());
 
   // handle에서 @를 제거한 username 추출
   const username = handle.replace(/^@/, "");
+
+  const handleTranslate = async () => {
+    if (isTranslated) {
+      // 이미 번역된 상태면 원문 보기로 전환
+      setIsTranslated(false);
+      return;
+    }
+
+    // 이미 번역된 내용이 있으면 재사용
+    if (translatedContent) {
+      setIsTranslated(true);
+      return;
+    }
+
+    // 번역 수행
+    try {
+      setIsTranslating(true);
+      setTranslateError(null);
+      const translated = await translateText({ text: content });
+      setTranslatedContent(translated);
+      setIsTranslated(true);
+    } catch (error) {
+      console.error("Translation error:", error);
+      setTranslateError(
+        error instanceof Error ? error.message : "번역 중 오류가 발생했습니다."
+      );
+    } finally {
+      setIsTranslating(false);
+    }
+  };
 
   return (
     <Card className="p-4 lg:p-6 rounded-2xl border border-border dark:border-[rgb(57,57,57)] bg-card hover:bg-card/80 transition-all cursor-pointer group shadow-lg hover:shadow-xl w-full max-w-full overflow-hidden">
@@ -104,9 +138,22 @@ export function FeedPost({
             </div>
           </div>
 
-          <p className="text-card-foreground text-[15px] leading-relaxed mb-3">
-            {content}
-          </p>
+          <div
+            className="text-card-foreground text-[15px] leading-relaxed mb-3"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {isTranslating ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>번역 중...</span>
+              </div>
+            ) : translateError ? (
+              <div className="text-destructive text-sm">{translateError}</div>
+            ) : (
+              <p>{isTranslated ? translatedContent : content}</p>
+            )}
+          </div>
 
           {images && images.length > 0 && (
             <div className="mt-3 grid grid-cols-1 gap-2 max-w-full overflow-hidden">
@@ -147,11 +194,21 @@ export function FeedPost({
               className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
-                setIsTranslated(!isTranslated);
+                handleTranslate();
               }}
+              disabled={isTranslating}
+              aria-label={isTranslated ? "원문 보기" : "번역 보기"}
             >
-              <Languages className="w-3.5 h-3.5 mr-1.5" />
-              {isTranslated ? "원문 보기" : "번역 보기"}
+              {isTranslating ? (
+                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Languages className="w-3.5 h-3.5 mr-1.5" />
+              )}
+              {isTranslating
+                ? "번역 중..."
+                : isTranslated
+                  ? "원문 보기"
+                  : "번역 보기"}
             </Button>
 
             <Link
