@@ -7,8 +7,8 @@ import { ExternalLink, Languages, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/use-theme";
+import { useTranslate } from "@/hooks/use-translate";
 import { cn } from "@/lib/utils";
-import { translateText } from "@/lib/translate";
 
 export interface FeedPostProps {
   journalist: string;
@@ -38,44 +38,20 @@ export function FeedPost({
   showFollowButton = true,
 }: FeedPostProps) {
   const { theme } = useTheme();
-  const [isTranslated, setIsTranslated] = useState(false);
-  const [translatedContent, setTranslatedContent] = useState<string>("");
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [translateError, setTranslateError] = useState<string | null>(null);
   const [failedImageIdx, setFailedImageIdx] = useState<Set<number>>(new Set());
 
   // handle에서 @를 제거한 username 추출
   const username = handle.replace(/^@/, "");
 
-  const handleTranslate = async () => {
-    if (isTranslated) {
-      // 이미 번역된 상태면 원문 보기로 전환
-      setIsTranslated(false);
-      return;
-    }
-
-    // 이미 번역된 내용이 있으면 재사용
-    if (translatedContent) {
-      setIsTranslated(true);
-      return;
-    }
-
-    // 번역 수행
-    try {
-      setIsTranslating(true);
-      setTranslateError(null);
-      const translated = await translateText({ text: content });
-      setTranslatedContent(translated);
-      setIsTranslated(true);
-    } catch (error) {
-      console.error("Translation error:", error);
-      setTranslateError(
-        error instanceof Error ? error.message : "번역 중 오류가 발생했습니다."
-      );
-    } finally {
-      setIsTranslating(false);
-    }
-  };
+  // 번역 관련 로직
+  const {
+    isTranslated,
+    translatedContent,
+    isTranslating,
+    translateError,
+    translateMessage,
+    handleTranslate,
+  } = useTranslate({ originalText: content });
 
   return (
     <Card className="p-4 lg:p-6 rounded-2xl border border-border dark:border-[rgb(57,57,57)] bg-card hover:bg-card/80 transition-all cursor-pointer group shadow-lg hover:shadow-xl w-full max-w-full overflow-hidden">
@@ -144,12 +120,19 @@ export function FeedPost({
             aria-atomic="true"
           >
             {translateError ? (
-              <div className="text-destructive text-sm">{translateError}</div>
+              <div className="text-destructive text-sm py-2">
+                {translateError}
+              </div>
             ) : isTranslating ? (
-              <div className="space-y-2">
-                <div className="h-4 w-full bg-muted rounded animate-pulse" />
-                <div className="h-4 w-full bg-muted rounded animate-pulse" />
-                <div className="h-4 w-3/4 bg-muted rounded animate-pulse" />
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <div className="h-4 w-full bg-muted rounded animate-pulse" />
+                  <div className="h-4 w-full bg-muted rounded animate-pulse" />
+                  <div className="h-4 w-3/4 bg-muted rounded animate-pulse" />
+                </div>
+                <p className="text-xs text-muted-foreground animate-pulse">
+                  {translateMessage}
+                </p>
               </div>
             ) : (
               <p>{isTranslated ? translatedContent : content}</p>
