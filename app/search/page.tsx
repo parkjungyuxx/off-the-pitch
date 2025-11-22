@@ -68,7 +68,14 @@ export default function SearchPage() {
           </div>
 
           <div className="p-4 lg:p-6">
-            <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
+            <Card
+              className={cn(
+                "p-6 rounded-2xl border bg-card",
+                theme === "light"
+                  ? "border-gray-300"
+                  : "border-[rgb(57,57,57)]"
+              )}
+            >
               <div className="relative mb-6">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
@@ -76,7 +83,12 @@ export default function SearchPage() {
                   placeholder="검색"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-10 h-12 rounded-2xl bg-background border border-[rgb(57,57,57)] focus-visible:border-[rgb(70,70,70)] focus-visible:border-2 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className={cn(
+                    "pl-10 pr-10 h-12 rounded-2xl bg-background focus-visible:border-2 focus-visible:ring-0 focus-visible:ring-offset-0",
+                    theme === "light"
+                      ? "border-gray-300 focus-visible:border-gray-400"
+                      : "border-[rgb(57,57,57)] focus-visible:border-[rgb(70,70,70)]"
+                  )}
                 />
               </div>
 
