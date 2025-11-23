@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { IoIosArrowDown } from "react-icons/io";
 import { Sidebar } from "@/components/sidebar";
 import { FeedPost, type FeedPostProps } from "@/components/feed-post";
@@ -17,6 +18,15 @@ import {
   getFollowedJournalists,
 } from "@/lib/follows";
 import { useTheme } from "@/hooks/use-theme";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Loader2, XIcon } from "lucide-react";
+import { getDailySummary } from "@/lib/summarize";
 
 const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
   if (!url) return undefined;
@@ -164,6 +174,10 @@ export default function HomePage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
+  const [isChatModalOpen, setIsChatModalOpen] = useState<boolean>(false);
+  const [summary, setSummary] = useState<string>("");
+  const [isLoadingSummary, setIsLoadingSummary] = useState<boolean>(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -184,6 +198,28 @@ export default function HomePage() {
     };
     checkSession();
   }, [router, supabase]);
+
+  // 모달 열릴 때 자동으로 요약 요청
+  useEffect(() => {
+    if (isChatModalOpen) {
+      const fetchSummary = async () => {
+        try {
+          setIsLoadingSummary(true);
+          setSummaryError(null);
+          setSummary(""); // 이전 요약 초기화
+          const result = await getDailySummary();
+          setSummary(result);
+        } catch (error) {
+          console.error("Summary fetch error:", error);
+          setSummaryError("요약을 가져오는 중 오류가 발생했습니다.");
+        } finally {
+          setIsLoadingSummary(false);
+        }
+      };
+
+      fetchSummary();
+    }
+  }, [isChatModalOpen]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -418,6 +454,172 @@ export default function HomePage() {
           </div>
         </div>
       </main>
+
+      {/* AI 챗봇 플로팅 버튼 */}
+      <button
+        className={cn(
+          "fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg",
+          "hover:scale-105 active:scale-95 transition-transform",
+          "flex items-center justify-center",
+          "bg-background border border-border",
+          "hover:bg-sidebar-accent",
+          "z-50"
+        )}
+        onClick={() => setIsChatModalOpen(true)}
+        aria-label="오늘의 이적시장 요약"
+      >
+        <Image
+          src="/summary-icon.svg"
+          alt="AI 챗봇"
+          width={28}
+          height={28}
+          className={cn("w-7 h-7", theme === "dark" && "invert")}
+        />
+      </button>
+
+      {/* AI 챗봇 모달 */}
+      <Dialog
+        open={isChatModalOpen}
+        onOpenChange={(open) => {
+          setIsChatModalOpen(open);
+          if (!open) {
+            // 모달 닫을 때 상태 초기화
+            setSummary("");
+            setSummaryError(null);
+          }
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          className={cn(
+            "max-w-2xl h-[80vh] p-0 flex flex-col",
+            theme === "light"
+              ? "bg-white border-gray-300"
+              : "bg-[#141414] border-[rgb(57,57,57)]"
+          )}
+        >
+          {/* 채팅 헤더 */}
+          <DialogHeader className="px-6 py-4 border-b border-border dark:border-[rgb(57,57,57)] relative">
+            <div className="flex items-center gap-3">
+              <Image
+                src="/summary-icon.svg"
+                alt="AI 챗봇"
+                width={32}
+                height={32}
+                className={cn("w-8 h-8", theme === "dark" && "invert")}
+              />
+              <DialogTitle className="text-lg font-semibold">
+                오늘의 이적시장 요약
+              </DialogTitle>
+            </div>
+            {/* 커스텀 닫기 버튼 (주황색 보더 없음) */}
+            <DialogClose
+              className={cn(
+                "absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100",
+                "focus:outline-none focus:ring-0",
+                "disabled:pointer-events-none"
+              )}
+            >
+              <XIcon className="w-4 h-4" />
+              <span className="sr-only">Close</span>
+            </DialogClose>
+          </DialogHeader>
+
+          {/* 채팅 메시지 영역 */}
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            {/* 요약 메시지 */}
+            {isLoadingSummary ? (
+              <div className="flex gap-3">
+                <div className="shrink-0">
+                  <Image
+                    src="/summary-icon.svg"
+                    alt="AI"
+                    width={24}
+                    height={24}
+                    className={cn(
+                      "w-6 h-6 rounded-full",
+                      theme === "dark" && "invert"
+                    )}
+                  />
+                </div>
+                <div className="flex-1">
+                  <div
+                    className={cn(
+                      "rounded-2xl px-4 py-3 max-w-[80%]",
+                      theme === "light"
+                        ? "bg-gray-100 text-gray-900"
+                        : "bg-[#181818] text-white"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <p className="text-sm text-muted-foreground">
+                        요약을 생성하고 있어요...
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : summaryError ? (
+              <div className="flex gap-3">
+                <div className="shrink-0">
+                  <Image
+                    src="/summary-icon.svg"
+                    alt="AI"
+                    width={24}
+                    height={24}
+                    className={cn(
+                      "w-6 h-6 rounded-full",
+                      theme === "dark" && "invert"
+                    )}
+                  />
+                </div>
+                <div className="flex-1">
+                  <div
+                    className={cn(
+                      "rounded-2xl px-4 py-3 max-w-[80%]",
+                      theme === "light"
+                        ? "bg-gray-100 text-gray-900"
+                        : "bg-[#181818] text-white"
+                    )}
+                  >
+                    <p className="text-sm text-destructive">{summaryError}</p>
+                  </div>
+                </div>
+              </div>
+            ) : summary ? (
+              <div className="flex gap-3">
+                <div className="shrink-0">
+                  <Image
+                    src="/summary-icon.svg"
+                    alt="AI"
+                    width={24}
+                    height={24}
+                    className={cn(
+                      "w-6 h-6 rounded-full",
+                      theme === "dark" && "invert"
+                    )}
+                  />
+                </div>
+                <div className="flex-1">
+                  <div
+                    className={cn(
+                      "rounded-2xl px-4 py-3 max-w-[80%]",
+                      theme === "light"
+                        ? "bg-gray-100 text-gray-900"
+                        : "bg-[#181818] text-white"
+                    )}
+                  >
+                    <p className="text-sm leading-relaxed whitespace-pre-line">
+                      {summary}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
