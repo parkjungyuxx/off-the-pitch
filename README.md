@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OFF THE PITCH
 
-## Getting Started
+해외축구 이적시장 뉴스를 한눈에 볼 수 있는 플랫폼입니다.
 
-First, run the development server:
+# Overview
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+> 신뢰할 수 있는 기자들의 이적 뉴스를 실시간으로 확인하고, AI 요약으로 빠르게 파악하세요.
+
+- 개발 기간: 2024.11 ~ (진행중)
+
+- 개발자: <img src="https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=Next.js&logoColor=white"> <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=TypeScript&logoColor=white">
+
+| <img width="200" height="200" src="https://github.com/parkjungyuxx.png"/> |
+| :-----------------------------------------------------------------------: |
+|                 [박준규](https://github.com/parkjungyuxx)                 |
+
+# 핵심 기능
+
+- **리그 기반 피드**: 주요 유럽 리그별로 이적 뉴스 필터링
+- **신뢰도 배지**: 기자의 신뢰도를 시각적으로 표시
+- **기자 팔로우**: 관심 있는 기자만 선택적으로 팔로우
+- **번역 기능**: OpenAI를 활용한 실시간 뉴스 번역
+- **AI 일일 요약**: 어제부터 오늘까지의 이적시장 뉴스를 AI가 요약
+- **다크/라이트 모드**: 사용자 선호에 맞는 테마 지원
+
+# 기술 스택
+
+- **Frontend**
+
+  - Next.js 16 (App Router)
+  - TypeScript
+  - Tailwind CSS
+  - React 19
+
+- **Backend & Database**
+
+  - Supabase (인증 및 데이터베이스)
+  - Next.js API Routes
+
+- **AI & External Services**
+
+  - OpenAI API (번역 및 요약)
+
+- **Package Manager**
+  - pnpm (모노레포 워크스페이스)
+
+# 프로젝트 구조
+
+이 프로젝트는 **모노레포(Monorepo)** 구조로 구성되어 있습니다.
+
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+off-the-pitch/
+├── apps/
+│   └── off-the-pitch/      # Next.js 웹 애플리케이션
+│       ├── app/            # Next.js App Router
+│       ├── components/     # React 컴포넌트
+│       ├── hooks/          # Custom React Hooks
+│       ├── lib/            # 유틸리티 함수
+│       └── public/         # 정적 파일
+├── packages/               # 공유 라이브러리 패키지들 (향후 배포 예정)
+├── memory-bank/            # 프로젝트 문서 및 컨텍스트
+├── package.json            # 루트 워크스페이스 설정
+├── pnpm-workspace.yaml     # pnpm 워크스페이스 설정
+└── tsconfig.json           # 루트 TypeScript 설정
+```
