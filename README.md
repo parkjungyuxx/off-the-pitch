@@ -6,9 +6,8 @@
 
 > 신뢰할 수 있는 기자들의 이적 뉴스를 실시간으로 확인하고, AI 요약으로 빠르게 파악하세요.
 
-- 개발 기간: 2024.11 ~ (진행중)
+- 개발 기간: 2025.11 ~ (진행중)
 
-- 개발자: <img src="https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=Next.js&logoColor=white"> <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=TypeScript&logoColor=white">
 
 | <img width="200" height="200" src="https://github.com/parkjungyuxx.png"/> |
 | :-----------------------------------------------------------------------: |
