@@ -1,0 +1,51 @@
+{
+  "name": "@bongsik/infinite-scroll",
+  "version": "0.1.0",
+  "description": "React hook for infinite scroll functionality",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "react",
+    "infinite-scroll",
+    "scroll",
+    "hook",
+    "typescript"
+  ],
+  "author": "parkjungyuxx",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/parkjungyuxx/off-the-pitch.git",
+    "directory": "packages/infinite-scroll"
+  },
+  "peerDependencies": {
+    "react": ">=16.8.0",
+    "react-dom": ">=16.8.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^8.57.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5"
+  }
+}
