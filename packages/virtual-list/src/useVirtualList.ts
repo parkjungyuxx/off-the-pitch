@@ -63,6 +63,13 @@ export interface UseVirtualListOptions {
    * @default 0
    */
   scrollOffset?: number;
+  /**
+   * 스크롤 타겟
+   * - 'container': 특정 div 컨테이너 스크롤 (기본값)
+   * - 'window': 전체 페이지 스크롤
+   * @default 'container'
+   */
+  scrollTarget?: "container" | "window";
 }
 
 /**
@@ -83,8 +90,9 @@ export interface UseVirtualListReturn {
   containerStyle: CSSProperties;
   /**
    * 스크롤 이벤트 핸들러
+   * scrollTarget이 'container'일 때만 사용됩니다.
    */
-  handleScroll: (e: UIEvent<HTMLElement>) => void;
+  handleScroll?: (e: UIEvent<HTMLElement>) => void;
   /**
    * 스크롤 컨테이너 ref
    */
@@ -107,21 +115,28 @@ export function useVirtualList(
     containerRef,
     overscan = 3,
     scrollOffset: initialScrollOffset = 0,
+    scrollTarget = "container",
   } = options;
 
   const [scrollOffset, setScrollOffset] = useState(initialScrollOffset);
   const [measuredHeight, setMeasuredHeight] = useState(initialContainerHeight);
+  const [windowHeight, setWindowHeight] = useState(
+    typeof window !== "undefined" ? window.innerHeight : 0
+  );
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const rafIdRef = useRef<number | null>(null);
 
-  // containerRef가 있으면 자동 측정, 없으면 수동 값 사용
-  const containerHeight = containerRef
-    ? measuredHeight
-    : initialContainerHeight;
+  // scrollTarget에 따라 containerHeight 결정
+  const containerHeight =
+    scrollTarget === "window"
+      ? windowHeight
+      : containerRef
+      ? measuredHeight
+      : initialContainerHeight;
 
-  // containerRef를 통한 자동 높이 측정
+  // containerRef를 통한 자동 높이 측정 (container 모드일 때만)
   useEffect(() => {
-    if (!containerRef?.current) return;
+    if (scrollTarget !== "container" || !containerRef?.current) return;
 
     const updateHeight = () => {
       const height = containerRef.current?.clientHeight ?? 0;
@@ -148,7 +163,30 @@ export function useVirtualList(
     return () => {
       resizeObserver.disconnect();
     };
-  }, [containerRef]);
+  }, [containerRef, scrollTarget]);
+
+  // window 모드일 때 window 크기 측정
+  useEffect(() => {
+    if (scrollTarget !== "window") return;
+
+    const updateWindowHeight = () => {
+      setWindowHeight(window.innerHeight);
+    };
+
+    // 초기 높이 측정
+    updateWindowHeight();
+
+    // ResizeObserver로 window 크기 변경 감지
+    const handleResize = () => {
+      updateWindowHeight();
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [scrollTarget]);
 
   // 아이템 높이 계산 함수
   const getItemHeight = useCallback(
@@ -227,32 +265,76 @@ export function useVirtualList(
     overscan,
   ]);
 
-  // 스크롤 핸들러 (requestAnimationFrame으로 최적화)
-  const handleScroll = useCallback((e: UIEvent<HTMLElement>) => {
-    const target = e.currentTarget;
-    const newScrollOffset = target.scrollTop;
+  // 컨테이너 스크롤 핸들러 (requestAnimationFrame으로 최적화)
+  const handleScroll = useCallback(
+    (e: UIEvent<HTMLElement>) => {
+      if (scrollTarget !== "container") return;
 
-    // 이전 requestAnimationFrame 취소
-    if (rafIdRef.current !== null) {
-      cancelAnimationFrame(rafIdRef.current);
-    }
+      const target = e.currentTarget;
+      const newScrollOffset = target.scrollTop;
 
-    // requestAnimationFrame으로 다음 프레임에 업데이트
-    rafIdRef.current = requestAnimationFrame(() => {
-      setScrollOffset(newScrollOffset);
-      rafIdRef.current = null;
-    });
-  }, []);
+      // 이전 requestAnimationFrame 취소
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+
+      // requestAnimationFrame으로 다음 프레임에 업데이트
+      rafIdRef.current = requestAnimationFrame(() => {
+        setScrollOffset(newScrollOffset);
+        rafIdRef.current = null;
+      });
+    },
+    [scrollTarget]
+  );
+
+  // window 스크롤 이벤트 처리 (requestAnimationFrame으로 최적화)
+  useEffect(() => {
+    if (scrollTarget !== "window") return;
+
+    const handleWindowScroll = () => {
+      const newScrollOffset =
+        window.scrollY || document.documentElement.scrollTop;
+
+      // 이전 requestAnimationFrame 취소
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+
+      // requestAnimationFrame으로 다음 프레임에 업데이트
+      rafIdRef.current = requestAnimationFrame(() => {
+        setScrollOffset(newScrollOffset);
+        rafIdRef.current = null;
+      });
+    };
+
+    // 초기 스크롤 위치 설정
+    handleWindowScroll();
+
+    // 스크롤 이벤트 리스너 추가 (passive: true로 성능 최적화)
+    window.addEventListener("scroll", handleWindowScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleWindowScroll);
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, [scrollTarget]);
 
   // 컨테이너 스타일
-  const containerStyle: CSSProperties = useMemo(
-    () => ({
+  const containerStyle: CSSProperties = useMemo(() => {
+    // window 모드일 때는 스타일 적용 안 함 (전체 페이지 스크롤)
+    if (scrollTarget === "window") {
+      return {};
+    }
+
+    // container 모드일 때만 스타일 적용
+    return {
       ...(containerRef ? {} : { height: containerHeight }),
       overflow: "auto",
       position: "relative",
-    }),
-    [containerHeight, containerRef]
-  );
+    };
+  }, [containerHeight, containerRef, scrollTarget]);
 
   // 외부 scrollOffset 변경 감지
   useEffect(() => {
@@ -265,7 +347,7 @@ export function useVirtualList(
     virtualItems,
     totalHeight,
     containerStyle,
-    handleScroll,
+    handleScroll: scrollTarget === "container" ? handleScroll : undefined,
     scrollElementRef,
   };
 }
