@@ -1,7 +1,0 @@
-{
-  "buildCommand": "cd apps/off-the-pitch && pnpm build",
-  "devCommand": "cd apps/off-the-pitch && pnpm dev",
-  "installCommand": "pnpm install",
-  "framework": "nextjs"
-}
-
