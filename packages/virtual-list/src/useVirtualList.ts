@@ -118,6 +118,16 @@ export function useVirtualList(
     scrollTarget = "container",
   } = options;
 
+  if (
+    scrollTarget === "container" &&
+    !containerRef &&
+    initialContainerHeight <= 0
+  ) {
+    throw new Error(
+      "useVirtualList: Provide a positive containerHeight or containerRef when scrollTarget is 'container'."
+    );
+  }
+
   const [scrollOffset, setScrollOffset] = useState(initialScrollOffset);
   const [measuredHeight, setMeasuredHeight] = useState(initialContainerHeight);
   const [windowHeight, setWindowHeight] = useState(
