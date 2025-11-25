@@ -3,11 +3,15 @@ import {
   useMemo,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useState,
   type RefObject,
   type CSSProperties,
   type UIEvent,
 } from "react";
+
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 /**
  * 가상화된 리스트 아이템 타입
@@ -130,9 +134,12 @@ export function useVirtualList(
 
   const [scrollOffset, setScrollOffset] = useState(initialScrollOffset);
   const [measuredHeight, setMeasuredHeight] = useState(initialContainerHeight);
-  const [windowHeight, setWindowHeight] = useState(
-    typeof window !== "undefined" ? window.innerHeight : 0
-  );
+  const [windowHeight, setWindowHeight] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.innerHeight;
+    }
+    return initialContainerHeight > 0 ? initialContainerHeight : 0;
+  });
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const rafIdRef = useRef<number | null>(null);
 
@@ -181,8 +188,8 @@ export function useVirtualList(
   }, [containerRef, scrollTarget]);
 
   // window 모드일 때 window 크기 측정
-  useEffect(() => {
-    if (scrollTarget !== "window") return;
+  useIsomorphicLayoutEffect(() => {
+    if (scrollTarget !== "window" || typeof window === "undefined") return;
 
     const updateWindowHeight = () => {
       setWindowHeight(window.innerHeight);
