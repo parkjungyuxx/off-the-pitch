@@ -144,12 +144,17 @@ export function useVirtualList(
       ? measuredHeight
       : initialContainerHeight;
 
-  // containerRef를 통한 자동 높이 측정 (container 모드일 때만)
+  // containerRef 또는 scrollElementRef를 통한 자동 높이 측정 (container 모드일 때만)
   useEffect(() => {
-    if (scrollTarget !== "container" || !containerRef?.current) return;
+    if (scrollTarget !== "container") return;
+
+    // containerRef가 있으면 그것을 사용, 없으면 scrollElementRef 사용
+    const targetRef = containerRef?.current || scrollElementRef.current;
+    if (!targetRef) return;
 
     const updateHeight = () => {
-      const height = containerRef.current?.clientHeight ?? 0;
+      const currentRef = containerRef?.current || scrollElementRef.current;
+      const height = currentRef?.clientHeight ?? 0;
       if (height > 0) {
         setMeasuredHeight(height);
       }
@@ -168,7 +173,7 @@ export function useVirtualList(
       }
     });
 
-    resizeObserver.observe(containerRef.current);
+    resizeObserver.observe(targetRef);
 
     return () => {
       resizeObserver.disconnect();
