@@ -39,6 +39,8 @@ export function FeedPost({
 }: FeedPostProps) {
   const { theme } = useTheme();
   const [failedImageIdx, setFailedImageIdx] = useState<Set<number>>(new Set());
+  const [avatarError, setAvatarError] = useState<boolean>(false);
+  const FALLBACK_AVATAR = "/placeholder-user.jpg";
 
   // handle에서 @를 제거한 username 추출
   const username = handle.replace(/^@/, "");
@@ -59,11 +61,12 @@ export function FeedPost({
         {/* 프로필 이미지 */}
         <Link href={`/journalists/${username}`} className="shrink-0">
           <Image
-            src={avatar || "/placeholder.svg"}
+            src={avatarError || !avatar ? FALLBACK_AVATAR : avatar}
             alt={journalist}
             width={48}
             height={48}
             className="rounded-full hover:opacity-80 transition-opacity size-10 lg:size-12"
+            onError={() => setAvatarError(true)}
           />
         </Link>
 
