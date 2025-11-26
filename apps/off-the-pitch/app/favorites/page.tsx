@@ -108,10 +108,6 @@ export default function FavoritesPage() {
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
   const scrollRef = useDragScroll<HTMLDivElement>();
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const firstItemRef = useRef<HTMLDivElement | null>(null);
-  const [measuredItemHeight, setMeasuredItemHeight] = useState<number | null>(
-    null
-  );
   const [journalistUsernames, setJournalistUsernames] = useState<string[]>([]);
 
   useEffect(() => {
@@ -148,14 +144,11 @@ export default function FavoritesPage() {
           setFollowedJournalists(new Set());
           setTweets([]);
           setFollowedJournalistsList([]);
+          setHasMore(false);
+          setNextCursor(null);
           setLoading(false);
           return;
         }
-
-        const handles = new Set(
-          followedData.data.map((f) => f.journalist_handle)
-        );
-        setFollowedJournalists(handles);
 
         // 팔로우한 기자들의 username 추출 (@ 제거)
         const usernames = followedData.data.map((f) =>
@@ -172,9 +165,6 @@ export default function FavoritesPage() {
         setTweets(tweetsData.items);
         setNextCursor(tweetsData.pagination.nextCursor);
         setHasMore(tweetsData.pagination.hasMore);
-
-        // 로딩 상태를 먼저 false로 설정하여 데이터를 즉시 표시
-        setLoading(false);
 
         // 기자별 프로필 이미지 추출 (트윗에서 가져오기)
         const journalistMap = new Map<
@@ -199,9 +189,13 @@ export default function FavoritesPage() {
         });
 
         setFollowedJournalistsList(Array.from(journalistMap.values()));
+        setFollowedJournalists(
+          new Set(followedData.data.map((f) => f.journalist_handle))
+        );
       } catch (err) {
         console.error("Load initial data error:", err);
         setError("피드를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      } finally {
         setLoading(false);
       }
     };
@@ -256,30 +250,14 @@ export default function FavoritesPage() {
   }, [tweets, selectedJournalist]);
 
   // 리스트 가상화 훅 설정
-  const SPACING = 16; // space-y-4 = 16px
-  const DEFAULT_ITEM_HEIGHT = 200 + SPACING; // 기본 추정값 (200px + 16px)
-  const itemHeight =
-    measuredItemHeight !== null
-      ? measuredItemHeight + SPACING
-      : DEFAULT_ITEM_HEIGHT;
-
-  // 첫 번째 아이템의 실제 높이 측정
-  useEffect(() => {
-    if (
-      firstItemRef.current &&
-      measuredItemHeight === null &&
-      filteredTweets.length > 0
-    ) {
-      const height = firstItemRef.current.offsetHeight;
-      if (height > 0) {
-        setMeasuredItemHeight(height);
-      }
-    }
-  }, [filteredTweets.length, measuredItemHeight]);
+  const SPACING = 16; // mb-4 = 16px
+  const DEFAULT_ITEM_HEIGHT = 200; // 기본 추정값 (간격 제외)
 
   const { virtualItems, totalHeight } = useVirtualList({
     itemCount: filteredTweets.length,
-    itemHeight: itemHeight,
+    itemHeight: DEFAULT_ITEM_HEIGHT, // 초기 추정값
+    itemSpacing: SPACING, // 아이템 간 간격
+    measureItemHeight: true, // 자동 높이 측정 활성화
     scrollTarget: "window",
     containerRef: containerRef as React.RefObject<HTMLElement | null>,
     overscan: 5,
@@ -447,7 +425,7 @@ export default function FavoritesPage() {
                   return (
                     <div
                       key={id}
-                      ref={isFirstItem ? firstItemRef : null}
+                      ref={virtualItem.ref}
                       className="mb-4"
                       style={{
                         position: "absolute",
