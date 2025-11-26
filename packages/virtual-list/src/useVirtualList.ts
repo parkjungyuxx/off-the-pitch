@@ -142,6 +142,7 @@ export function useVirtualList(
   });
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const rafIdRef = useRef<number | null>(null);
+  const containerOffsetRef = useRef<number>(0); // 컨테이너의 초기 offset 저장
 
   // scrollTarget에 따라 containerHeight 결정
   const containerHeight =
@@ -313,22 +314,27 @@ export function useVirtualList(
   useEffect(() => {
     if (scrollTarget !== "window") return;
 
+    // 컨테이너의 초기 offset 측정 (한 번만)
+    const updateContainerOffset = () => {
+      if (containerRef?.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const baseScrollOffset =
+          window.scrollY || document.documentElement.scrollTop;
+        containerOffsetRef.current = rect.top + baseScrollOffset;
+      } else if (scrollElementRef.current) {
+        const rect = scrollElementRef.current.getBoundingClientRect();
+        const baseScrollOffset =
+          window.scrollY || document.documentElement.scrollTop;
+        containerOffsetRef.current = rect.top + baseScrollOffset;
+      }
+    };
+
     const handleWindowScroll = () => {
       const baseScrollOffset =
         window.scrollY || document.documentElement.scrollTop;
       
-      // containerRef가 있으면 컨테이너의 offsetTop을 고려
-      let containerOffset = 0;
-      if (containerRef?.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        containerOffset = rect.top + baseScrollOffset;
-      } else if (scrollElementRef.current) {
-        const rect = scrollElementRef.current.getBoundingClientRect();
-        containerOffset = rect.top + baseScrollOffset;
-      }
-      
       // 컨테이너 시작 위치를 기준으로 한 상대 스크롤 오프셋
-      const newScrollOffset = Math.max(0, baseScrollOffset - containerOffset);
+      const newScrollOffset = Math.max(0, baseScrollOffset - containerOffsetRef.current);
 
       // 이전 requestAnimationFrame 취소
       if (rafIdRef.current !== null) {
@@ -342,6 +348,9 @@ export function useVirtualList(
       });
     };
 
+    // 초기 컨테이너 offset 측정
+    updateContainerOffset();
+    
     // 초기 스크롤 위치 설정
     handleWindowScroll();
 
@@ -349,11 +358,15 @@ export function useVirtualList(
     window.addEventListener("scroll", handleWindowScroll, { passive: true });
     
     // 리사이즈 이벤트도 감지 (컨테이너 위치가 변경될 수 있음)
-    window.addEventListener("resize", handleWindowScroll, { passive: true });
+    const handleResize = () => {
+      updateContainerOffset();
+      handleWindowScroll();
+    };
+    window.addEventListener("resize", handleResize, { passive: true });
 
     return () => {
       window.removeEventListener("scroll", handleWindowScroll);
-      window.removeEventListener("resize", handleWindowScroll);
+      window.removeEventListener("resize", handleResize);
       if (rafIdRef.current !== null) {
         cancelAnimationFrame(rafIdRef.current);
       }
