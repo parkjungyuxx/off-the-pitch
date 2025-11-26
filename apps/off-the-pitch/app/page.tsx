@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { IoIosArrowDown } from "react-icons/io";
@@ -17,6 +17,31 @@ import {
   unfollowJournalist,
   getFollowedJournalists,
 } from "@/lib/follows";
+import { useInfiniteScroll } from "@bongsik/infinite-scroll";
+import { useVirtualList, type VirtualItem } from "@bongsik/virtual-list";
+
+// 임시 mock 데이터 (무한스크롤 및 리스트 가상화 테스트용)
+const createMockTweet = (index: number): Tweet => ({
+  tweet_id: `mock_tweet_${index}`,
+  author_name: "Fabrizio Romano",
+  author_username: "FabrizioRomano",
+  author_profile_image:
+    "https://pbs.twimg.com/profile_images/1649219006229082112/Q4JSUo7r_400x400.jpg",
+  tweet_text:
+    "🚨 EXCLUSIVE: Manchester United are preparing a new bid for the midfielder. Sources confirm negotiations are advancing. More to follow... #MUFC #TransferNews",
+  images: ["https://pbs.twimg.com/media/FakeImage1.jpg?format=jpg&name=large"],
+  videos: null,
+  created_at: new Date(Date.now() - index * 60000).toISOString(), // 각 트윗마다 1분씩 차이
+  url: `https://twitter.com/FabrizioRomano/status/mock_${index}`,
+});
+
+// Mock 데이터 300개 생성 (전체 데이터)
+const MOCK_TWEETS: Tweet[] = Array.from({ length: 300 }, (_, i) =>
+  createMockTweet(i + 1)
+);
+
+// 한 번에 로드할 아이템 수
+const ITEMS_PER_PAGE = 20;
 import { useTheme } from "@/hooks/use-theme";
 import {
   Dialog,
@@ -172,7 +197,10 @@ export default function HomePage() {
   const [showLeagueSelector, setShowLeagueSelector] = useState(false);
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+  const [hasMore, setHasMore] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
   const [isChatModalOpen, setIsChatModalOpen] = useState<boolean>(false);
   const [summary, setSummary] = useState<string>("");
@@ -221,20 +249,23 @@ export default function HomePage() {
     }
   }, [isChatModalOpen]);
 
+  // 초기 데이터 로드
   useEffect(() => {
-    const loadData = async () => {
+    const loadInitialData = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // 트윗과 팔로우한 기자 목록을 동시에 로드
-        const [tweetsData, followedData] = await Promise.all([
-          fetchTweets({ limit: 20 }),
-          getFollowedJournalists(),
-        ]);
+        // 테스트를 위해 네트워크 지연 시뮬레이션 (1초)
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        setTweets(tweetsData.items);
+        // 초기에는 첫 페이지만 로드
+        const initialTweets = MOCK_TWEETS.slice(0, ITEMS_PER_PAGE);
+        setTweets(initialTweets);
+        setHasMore(MOCK_TWEETS.length > ITEMS_PER_PAGE);
 
+        // 팔로우한 기자 목록은 여전히 로드 (팔로우 기능 테스트용)
+        const followedData = await getFollowedJournalists();
         if (followedData.data) {
           const handles = new Set(
             followedData.data.map((f) => f.journalist_handle)
@@ -249,9 +280,47 @@ export default function HomePage() {
     };
 
     if (!checkingAuth) {
-      loadData();
+      loadInitialData();
     }
   }, [checkingAuth]);
+
+  // 추가 데이터 로드 함수
+  const fetchMoreTweets = async () => {
+    if (isLoadingMore || !hasMore) return;
+
+    try {
+      setIsLoadingMore(true);
+      // 테스트를 위해 네트워크 지연 시뮬레이션 (1.5초)
+      // 무한 스크롤 로딩 상태를 명확히 확인할 수 있도록 딜레이 증가
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      const currentLength = tweets.length;
+      const nextTweets = MOCK_TWEETS.slice(
+        currentLength,
+        currentLength + ITEMS_PER_PAGE
+      );
+
+      if (nextTweets.length > 0) {
+        setTweets((prev) => [...prev, ...nextTweets]);
+        setHasMore(currentLength + nextTweets.length < MOCK_TWEETS.length);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error("Failed to load more tweets:", error);
+      setError("추가 피드를 불러오지 못했습니다.");
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  // 무한 스크롤 훅 설정
+  const { sentinelRef } = useInfiniteScroll({
+    loadMore: fetchMoreTweets,
+    hasMore,
+    isLoading: isLoadingMore,
+    threshold: 200, // 하단 200px 전에 미리 로드
+  });
 
   const toggleFavorite = async (handle: string, journalistName: string) => {
     const isFollowing = followedJournalists.has(handle);
@@ -328,6 +397,20 @@ export default function HomePage() {
     });
   }, [tweets, selectedLeague]);
 
+  // 리스트 가상화 훅 설정
+  // FeedPost의 평균 높이 + space-y-4 간격(16px) 포함
+  // 실제 FeedPost 높이에 맞춰 조정 필요
+  // 브라우저 개발자 도구로 실제 높이 확인 후 조정: 실제 높이 + 16px
+  const ESTIMATED_ITEM_HEIGHT = 200 + 16; // 아이템 높이(200px) + 간격(16px) - 더 작게 조정
+
+  const { virtualItems, totalHeight } = useVirtualList({
+    itemCount: filteredTweets.length,
+    itemHeight: ESTIMATED_ITEM_HEIGHT,
+    scrollTarget: "window",
+    containerRef: containerRef as React.RefObject<HTMLElement | null>, // 컨테이너 ref 전달하여 offset 계산
+    overscan: 5, // 화면 밖에 5개 아이템 추가 렌더링 (더 여유있게)
+  });
+
   if (checkingAuth) {
     return null;
   }
@@ -400,10 +483,12 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="p-4 lg:p-6 space-y-4">
+          <div className="p-4 lg:p-6">
             {loading &&
               Array.from({ length: 3 }).map((_, idx) => (
-                <FeedPostSkeleton key={idx} />
+                <div key={idx} className="mb-4">
+                  <FeedPostSkeleton />
+                </div>
               ))}
             {error && <p className="text-destructive text-sm">{error}</p>}
             {!loading && !error && filteredTweets.length === 0 && (
@@ -417,40 +502,94 @@ export default function HomePage() {
                 </div>
               </Card>
             )}
-            {!loading &&
-              !error &&
-              filteredTweets.length > 0 &&
-              filteredTweets.map((t) => {
-                const displayName =
-                  (t.author_name?.split("@")[0]?.trim() as string) ||
-                  t.author_name;
-                const mapped: FeedPostProps = {
-                  journalist: displayName,
-                  handle: `@${t.author_username}`,
-                  credibility: 2, // 기본값 (Tier 2)
-                  content: t.tweet_text,
-                  images: (t.images ?? [])
-                    .map((u) => normalizeTwitterMediaUrl(u)!)
-                    .filter(Boolean),
-                  time: formatRelativeTime(t.created_at),
-                  link: t.url,
-                  avatar:
-                    normalizeTwitterMediaUrl(t.author_profile_image) ||
-                    "/placeholder.svg",
-                };
-                const id = t.tweet_id;
-                const handle = `@${t.author_username}`;
-                const isFollowing = followedJournalists.has(handle);
+            {!loading && !error && filteredTweets.length > 0 && (
+              <div
+                ref={containerRef}
+                className="scrollbar-hide"
+                style={{
+                  position: "relative",
+                  minHeight: totalHeight > 0 ? totalHeight : undefined,
+                  overflow: "hidden", // 스크롤 완전히 방지
+                  msOverflowStyle: "none",
+                  scrollbarWidth: "none",
+                }}
+              >
+                {virtualItems.map((virtualItem: VirtualItem) => {
+                  const t = filteredTweets[virtualItem.index];
+                  if (!t) return null;
 
-                return (
-                  <FeedPost
-                    key={id}
-                    {...mapped}
-                    isFavorited={isFollowing}
-                    onToggleFavorite={() => toggleFavorite(handle, displayName)}
-                  />
-                );
-              })}
+                  const displayName =
+                    (t.author_name?.split("@")[0]?.trim() as string) ||
+                    t.author_name;
+                  const mapped: FeedPostProps = {
+                    journalist: displayName,
+                    handle: `@${t.author_username}`,
+                    credibility: 2, // 기본값 (Tier 2)
+                    content: t.tweet_text,
+                    images: (t.images ?? [])
+                      .map((u) => normalizeTwitterMediaUrl(u)!)
+                      .filter(Boolean),
+                    time: formatRelativeTime(t.created_at),
+                    link: t.url,
+                    avatar:
+                      normalizeTwitterMediaUrl(t.author_profile_image) ||
+                      "/placeholder.svg",
+                  };
+                  const id = t.tweet_id;
+                  const handle = `@${t.author_username}`;
+                  const isFollowing = followedJournalists.has(handle);
+
+                  return (
+                    <div
+                      key={id}
+                      style={{
+                        position: "absolute",
+                        top: virtualItem.start,
+                        width: "100%",
+                      }}
+                    >
+                      <FeedPost
+                        {...mapped}
+                        isFavorited={isFollowing}
+                        onToggleFavorite={() =>
+                          toggleFavorite(handle, displayName)
+                        }
+                      />
+                    </div>
+                  );
+                })}
+                {/* 가상화를 위한 높이 확보 spacer */}
+                <div
+                  style={{
+                    height: totalHeight,
+                    width: "100%",
+                    pointerEvents: "none",
+                  }}
+                  aria-hidden="true"
+                />
+                {/* 무한 스크롤 sentinel 및 로딩 인디케이터 */}
+                <div ref={sentinelRef} className="py-4">
+                  {isLoadingMore && (
+                    <div className="space-y-4 py-4">
+                      {Array.from({ length: 3 }).map((_, idx) => (
+                        <FeedPostSkeleton key={`loading-skeleton-${idx}`} />
+                      ))}
+                    </div>
+                  )}
+                  {!hasMore && !isLoadingMore && filteredTweets.length > 0 && (
+                    <div className="py-4">
+                      <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
+                        <div className="flex flex-col items-center justify-center py-8">
+                          <p className="text-muted-foreground text-sm text-center">
+                            모든 피드를 불러왔습니다.
+                          </p>
+                        </div>
+                      </Card>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>

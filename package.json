@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --filter off-the-pitch dev",
-    "build": "pnpm --filter off-the-pitch build",
+    "build": "pnpm --filter @bongsik/infinite-scroll build && pnpm --filter @bongsik/virtual-list build && pnpm --filter off-the-pitch build",
     "build:infinite-scroll": "pnpm --filter @bongsik/infinite-scroll build",
     "lint": "pnpm --filter off-the-pitch lint",
     "start": "pnpm --filter off-the-pitch start"

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build",
+    "build": "cd ../.. && pnpm --filter @bongsik/infinite-scroll build && pnpm --filter @bongsik/virtual-list build && cd apps/off-the-pitch && next build",
     "dev": "next dev",
     "lint": "eslint .",
     "start": "next start"
@@ -62,7 +62,9 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",
-    "zod": "3.25.76"
+    "zod": "3.25.76",
+    "@bongsik/infinite-scroll": "workspace:*",
+    "@bongsik/virtual-list": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",
