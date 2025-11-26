@@ -33,7 +33,7 @@ const createMockTweet = (index: number): Tweet => ({
   url: `https://twitter.com/FabrizioRomano/status/mock_${index}`,
 });
 
-// Mock 데이터 300개 생성
+// Mock 데이터 300개 생성 (전체 데이터)
 const MOCK_TWEETS: Tweet[] = Array.from({ length: 300 }, (_, i) =>
   createMockTweet(i + 1)
 );
@@ -246,6 +246,9 @@ export default function HomePage() {
       try {
         setLoading(true);
         setError(null);
+
+        // 테스트를 위해 네트워크 지연 시뮬레이션 (1초)
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
         // 임시: Mock 데이터 300개 사용 (무한스크롤 및 리스트 가상화 테스트용)
         // TODO: 실제 Supabase 데이터로 교체 예정
