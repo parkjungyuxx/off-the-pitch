@@ -503,7 +503,17 @@ export default function HomePage() {
               </Card>
             )}
             {!loading && !error && filteredTweets.length > 0 && (
-              <div ref={containerRef} style={{ position: "relative" }}>
+              <div
+                ref={containerRef}
+                className="scrollbar-hide"
+                style={{
+                  position: "relative",
+                  minHeight: totalHeight > 0 ? totalHeight : undefined,
+                  overflow: "hidden", // 스크롤 완전히 방지
+                  msOverflowStyle: "none",
+                  scrollbarWidth: "none",
+                }}
+              >
                 {virtualItems.map((virtualItem: VirtualItem) => {
                   const t = filteredTweets[virtualItem.index];
                   if (!t) return null;
