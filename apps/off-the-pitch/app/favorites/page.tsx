@@ -273,6 +273,36 @@ export default function FavoritesPage() {
     return tweets.filter((t) => `@${t.author_username}` === selectedJournalist);
   }, [tweets, selectedJournalist]);
 
+  // 리스트 가상화 훅 설정
+  const SPACING = 16; // space-y-4 = 16px
+  const DEFAULT_ITEM_HEIGHT = 200 + SPACING; // 기본 추정값 (200px + 16px)
+  const itemHeight =
+    measuredItemHeight !== null
+      ? measuredItemHeight + SPACING
+      : DEFAULT_ITEM_HEIGHT;
+
+  // 첫 번째 아이템의 실제 높이 측정
+  useEffect(() => {
+    if (
+      firstItemRef.current &&
+      measuredItemHeight === null &&
+      filteredTweets.length > 0
+    ) {
+      const height = firstItemRef.current.offsetHeight;
+      if (height > 0) {
+        setMeasuredItemHeight(height);
+      }
+    }
+  }, [filteredTweets.length, measuredItemHeight]);
+
+  const { virtualItems, totalHeight } = useVirtualList({
+    itemCount: filteredTweets.length,
+    itemHeight: itemHeight,
+    scrollTarget: "window",
+    containerRef: containerRef as React.RefObject<HTMLElement | null>,
+    overscan: 5,
+  });
+
   const toggleFavorite = async (handle: string, journalistName: string) => {
     const isFollowing = followedJournalists.has(handle);
 
@@ -365,95 +395,126 @@ export default function FavoritesPage() {
             </div>
           )}
 
-          <div className="p-4 lg:p-6 space-y-4">
-            {loading &&
+          <div className="p-4 lg:p-6">
+            {loading ? (
               Array.from({ length: 3 }).map((_, idx) => (
-                <FeedPostSkeleton key={idx} />
-              ))}
-            {error && <p className="text-destructive text-sm">{error}</p>}
-            {!loading &&
-              !error &&
-              filteredTweets.length === 0 &&
-              tweets.length === 0 && (
-                <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <p className="text-muted-foreground text-sm text-center">
-                      팔로우한 기자가 없습니다.
-                      <br />
-                      기자를 팔로우하면 여기에 트윗이 표시됩니다.
-                    </p>
-                  </div>
-                </Card>
-              )}
-            {!loading &&
-              !error &&
-              filteredTweets.length === 0 &&
-              tweets.length > 0 && (
-                <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <p className="text-muted-foreground text-sm text-center">
-                      {selectedJournalist
-                        ? "선택한 기자의 트윗이 없습니다."
-                        : "트윗이 없습니다."}
-                    </p>
-                  </div>
-                </Card>
-              )}
-            {!loading &&
-              !error &&
-              filteredTweets.length > 0 &&
-              filteredTweets.map((t) => {
-                const displayName =
-                  (t.author_name?.split("@")[0]?.trim() as string) ||
-                  t.author_name;
-                const mapped: FeedPostProps = {
-                  journalist: displayName,
-                  handle: `@${t.author_username}`,
-                  credibility: 2, // 기본값 (Tier 2)
-                  content: t.tweet_text,
-                  images: (t.images ?? [])
-                    .map((u) => normalizeTwitterMediaUrl(u)!)
-                    .filter(Boolean),
-                  time: formatRelativeTime(t.created_at),
-                  link: t.url,
-                  avatar:
-                    normalizeTwitterMediaUrl(t.author_profile_image) ||
-                    "/placeholder-user.jpg",
-                };
-                const id = t.tweet_id;
-                const handle = `@${t.author_username}`;
-                const isFollowing = followedJournalists.has(handle);
+                <div key={idx} className="mb-4">
+                  <FeedPostSkeleton />
+                </div>
+              ))
+            ) : error ? (
+              <p className="text-destructive text-sm">{error}</p>
+            ) : filteredTweets.length === 0 && tweets.length === 0 ? (
+              <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
+                <div className="flex flex-col items-center justify-center py-12">
+                  <p className="text-muted-foreground text-sm text-center">
+                    팔로우한 기자가 없습니다.
+                    <br />
+                    기자를 팔로우하면 여기에 트윗이 표시됩니다.
+                  </p>
+                </div>
+              </Card>
+            ) : filteredTweets.length === 0 && tweets.length > 0 ? (
+              <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
+                <div className="flex flex-col items-center justify-center py-12">
+                  <p className="text-muted-foreground text-sm text-center">
+                    {selectedJournalist
+                      ? "선택한 기자의 트윗이 없습니다."
+                      : "트윗이 없습니다."}
+                  </p>
+                </div>
+              </Card>
+            ) : (
+              <div
+                ref={containerRef}
+                className="scrollbar-hide"
+                style={{
+                  position: "relative",
+                  minHeight: totalHeight > 0 ? totalHeight : undefined,
+                  overflow: "hidden", // 스크롤 완전히 방지
+                  msOverflowStyle: "none",
+                  scrollbarWidth: "none",
+                }}
+              >
+                {virtualItems.map((virtualItem: VirtualItem) => {
+                  const t = filteredTweets[virtualItem.index];
+                  if (!t) return null;
 
-                return (
-                  <FeedPost
-                    key={id}
-                    {...mapped}
-                    isFavorited={isFollowing}
-                    onToggleFavorite={() => toggleFavorite(handle, displayName)}
-                  />
-                );
-              })}
-            {/* 무한 스크롤 sentinel 및 로딩 인디케이터 */}
-            <div ref={sentinelRef} className="py-4">
-              {isLoadingMore && (
-                <div className="space-y-4 py-4">
-                  {Array.from({ length: 3 }).map((_, idx) => (
-                    <FeedPostSkeleton key={`loading-skeleton-${idx}`} />
-                  ))}
-                </div>
-              )}
-              {!hasMore && !isLoadingMore && filteredTweets.length > 0 && (
-                <div className="py-4">
-                  <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
-                    <div className="flex flex-col items-center justify-center py-8">
-                      <p className="text-muted-foreground text-sm text-center">
-                        모든 피드를 불러왔습니다.
-                      </p>
+                  const displayName =
+                    (t.author_name?.split("@")[0]?.trim() as string) ||
+                    t.author_name;
+                  const mapped: FeedPostProps = {
+                    journalist: displayName,
+                    handle: `@${t.author_username}`,
+                    credibility: 2, // 기본값 (Tier 2)
+                    content: t.tweet_text,
+                    images: (t.images ?? [])
+                      .map((u) => normalizeTwitterMediaUrl(u)!)
+                      .filter(Boolean),
+                    time: formatRelativeTime(t.created_at),
+                    link: t.url,
+                    avatar:
+                      normalizeTwitterMediaUrl(t.author_profile_image) ||
+                      "/placeholder-user.jpg",
+                  };
+                  const id = t.tweet_id;
+                  const handle = `@${t.author_username}`;
+                  const isFollowing = followedJournalists.has(handle);
+                  const isFirstItem = virtualItem.index === 0;
+
+                  return (
+                    <div
+                      key={id}
+                      ref={isFirstItem ? firstItemRef : null}
+                      className="mb-4"
+                      style={{
+                        position: "absolute",
+                        top: virtualItem.start,
+                        width: "100%",
+                      }}
+                    >
+                      <FeedPost
+                        {...mapped}
+                        isFavorited={isFollowing}
+                        onToggleFavorite={() =>
+                          toggleFavorite(handle, displayName)
+                        }
+                      />
                     </div>
-                  </Card>
+                  );
+                })}
+                {/* 가상화를 위한 높이 확보 spacer */}
+                <div
+                  style={{
+                    height: totalHeight,
+                    width: "100%",
+                    pointerEvents: "none",
+                  }}
+                  aria-hidden="true"
+                />
+                {/* 무한 스크롤 sentinel 및 로딩 인디케이터 */}
+                <div ref={sentinelRef} className="py-4">
+                  {isLoadingMore && (
+                    <div className="space-y-4 py-4">
+                      {Array.from({ length: 3 }).map((_, idx) => (
+                        <FeedPostSkeleton key={`loading-skeleton-${idx}`} />
+                      ))}
+                    </div>
+                  )}
+                  {!hasMore && !isLoadingMore && filteredTweets.length > 0 && (
+                    <div className="py-4">
+                      <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
+                        <div className="flex flex-col items-center justify-center py-8">
+                          <p className="text-muted-foreground text-sm text-center">
+                            모든 피드를 불러왔습니다.
+                          </p>
+                        </div>
+                      </Card>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </main>
