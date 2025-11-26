@@ -17,6 +17,26 @@ import {
   unfollowJournalist,
   getFollowedJournalists,
 } from "@/lib/follows";
+
+// 임시 mock 데이터 (무한스크롤 및 리스트 가상화 테스트용)
+const createMockTweet = (index: number): Tweet => ({
+  tweet_id: `mock_tweet_${index}`,
+  author_name: "Fabrizio Romano",
+  author_username: "FabrizioRomano",
+  author_profile_image:
+    "https://pbs.twimg.com/profile_images/1649219006229082112/Q4JSUo7r_400x400.jpg",
+  tweet_text:
+    "🚨 EXCLUSIVE: Manchester United are preparing a new bid for the midfielder. Sources confirm negotiations are advancing. More to follow... #MUFC #TransferNews",
+  images: ["https://pbs.twimg.com/media/FakeImage1.jpg?format=jpg&name=large"],
+  videos: null,
+  created_at: new Date(Date.now() - index * 60000).toISOString(), // 각 트윗마다 1분씩 차이
+  url: `https://twitter.com/FabrizioRomano/status/mock_${index}`,
+});
+
+// Mock 데이터 300개 생성
+const MOCK_TWEETS: Tweet[] = Array.from({ length: 300 }, (_, i) =>
+  createMockTweet(i + 1)
+);
 import { useTheme } from "@/hooks/use-theme";
 import {
   Dialog,
@@ -227,14 +247,12 @@ export default function HomePage() {
         setLoading(true);
         setError(null);
 
-        // 트윗과 팔로우한 기자 목록을 동시에 로드
-        const [tweetsData, followedData] = await Promise.all([
-          fetchTweets({ limit: 20 }),
-          getFollowedJournalists(),
-        ]);
+        // 임시: Mock 데이터 300개 사용 (무한스크롤 및 리스트 가상화 테스트용)
+        // TODO: 실제 Supabase 데이터로 교체 예정
+        setTweets(MOCK_TWEETS);
 
-        setTweets(tweetsData.items);
-
+        // 팔로우한 기자 목록은 여전히 로드 (팔로우 기능 테스트용)
+        const followedData = await getFollowedJournalists();
         if (followedData.data) {
           const handles = new Set(
             followedData.data.map((f) => f.journalist_handle)
