@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Sidebar } from "@/components/sidebar";
@@ -18,6 +18,8 @@ import {
 } from "@/lib/follows";
 import { fetchTweets, type Tweet } from "@/lib/tweets";
 import { useTheme } from "@/hooks/use-theme";
+import { useInfiniteScroll } from "@bongsik/infinite-scroll";
+import { useVirtualList, type VirtualItem } from "@bongsik/virtual-list";
 
 // 임시 mock 데이터 (무한스크롤 및 리스트 가상화 테스트용)
 const createMockTweet = (index: number): Tweet => ({
@@ -38,6 +40,9 @@ const createMockTweet = (index: number): Tweet => ({
 const MOCK_TWEETS: Tweet[] = Array.from({ length: 300 }, (_, i) =>
   createMockTweet(i + 1)
 );
+
+// 한 번에 로드할 아이템 수
+const ITEMS_PER_PAGE = 20;
 
 const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
   if (!url) return undefined;
@@ -116,9 +121,16 @@ export default function FavoritesPage() {
   >("favorites");
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+  const [hasMore, setHasMore] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
   const scrollRef = useDragScroll<HTMLDivElement>();
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const firstItemRef = useRef<HTMLDivElement | null>(null);
+  const [measuredItemHeight, setMeasuredItemHeight] = useState<number | null>(
+    null
+  );
 
   useEffect(() => {
     const checkSession = async () => {
@@ -150,8 +162,10 @@ export default function FavoritesPage() {
         // 테스트를 위해 네트워크 지연 시뮬레이션 (1초)
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        // Mock 데이터 사용 (전체 300개)
-        setTweets(MOCK_TWEETS);
+        // 초기에는 첫 페이지만 로드
+        const initialTweets = MOCK_TWEETS.slice(0, ITEMS_PER_PAGE);
+        setTweets(initialTweets);
+        setHasMore(MOCK_TWEETS.length > ITEMS_PER_PAGE);
 
         // 팔로우한 기자 목록은 백그라운드에서 로드
         const timeoutPromise = new Promise<{ data: null; error: string }>(
@@ -213,6 +227,43 @@ export default function FavoritesPage() {
       loadFollowedJournalistsTweets();
     }
   }, [checkingAuth]);
+
+  // 추가 데이터 로드 함수
+  const fetchMoreTweets = async () => {
+    if (isLoadingMore || !hasMore) return;
+
+    try {
+      setIsLoadingMore(true);
+      // 테스트를 위해 네트워크 지연 시뮬레이션 (1.5초)
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      const currentLength = tweets.length;
+      const nextTweets = MOCK_TWEETS.slice(
+        currentLength,
+        currentLength + ITEMS_PER_PAGE
+      );
+
+      if (nextTweets.length > 0) {
+        setTweets((prev) => [...prev, ...nextTweets]);
+        setHasMore(currentLength + nextTweets.length < MOCK_TWEETS.length);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error("Failed to load more tweets:", error);
+      setError("추가 피드를 불러오지 못했습니다.");
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  // 무한 스크롤 훅 설정
+  const { sentinelRef } = useInfiniteScroll({
+    loadMore: fetchMoreTweets,
+    hasMore,
+    isLoading: isLoadingMore,
+    threshold: 200, // 하단 200px 전에 미리 로드
+  });
 
   // 선택된 기자에 따라 트윗 필터링
   const filteredTweets = useMemo(() => {
@@ -367,7 +418,7 @@ export default function FavoritesPage() {
                   link: t.url,
                   avatar:
                     normalizeTwitterMediaUrl(t.author_profile_image) ||
-                    "/placeholder.svg",
+                    "/placeholder-user.jpg",
                 };
                 const id = t.tweet_id;
                 const handle = `@${t.author_username}`;
@@ -382,6 +433,27 @@ export default function FavoritesPage() {
                   />
                 );
               })}
+            {/* 무한 스크롤 sentinel 및 로딩 인디케이터 */}
+            <div ref={sentinelRef} className="py-4">
+              {isLoadingMore && (
+                <div className="space-y-4 py-4">
+                  {Array.from({ length: 3 }).map((_, idx) => (
+                    <FeedPostSkeleton key={`loading-skeleton-${idx}`} />
+                  ))}
+                </div>
+              )}
+              {!hasMore && !isLoadingMore && filteredTweets.length > 0 && (
+                <div className="py-4">
+                  <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
+                    <div className="flex flex-col items-center justify-center py-8">
+                      <p className="text-muted-foreground text-sm text-center">
+                        모든 피드를 불러왔습니다.
+                      </p>
+                    </div>
+                  </Card>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>
