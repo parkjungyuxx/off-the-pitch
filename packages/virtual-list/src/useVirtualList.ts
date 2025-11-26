@@ -33,6 +33,12 @@ export interface VirtualItem {
    * 아이템의 끝 위치 (px)
    */
   end: number;
+  /**
+   * 아이템 요소에 연결할 ref 콜백
+   * 자동 높이 측정을 위해 사용됩니다.
+   * 예: <div ref={virtualItem.ref}>...</div>
+   */
+  ref: (element: HTMLElement | null) => void;
 }
 
 /**
@@ -45,6 +51,7 @@ export interface UseVirtualListOptions {
   itemCount: number;
   /**
    * 각 아이템의 높이 (px) 또는 동적 높이를 계산하는 함수
+   * itemRefs가 제공되면 이 값은 초기 추정값으로만 사용됩니다.
    */
   itemHeight: number | ((index: number) => number);
   /**
@@ -57,6 +64,19 @@ export interface UseVirtualListOptions {
    * 제공되면 containerHeight를 자동으로 측정하고, window 모드에서 offset 계산에 사용됩니다.
    */
   containerRef?: RefObject<HTMLElement | null>;
+  /**
+   * 아이템 간 간격 (px)
+   * 자동 높이 측정 시 간격이 자동으로 추가됩니다.
+   * @default 0
+   */
+  itemSpacing?: number;
+  /**
+   * 자동 높이 측정 활성화
+   * true로 설정하면 각 아이템의 높이를 자동으로 측정합니다.
+   * VirtualItem.ref를 사용하여 아이템 요소에 연결하세요.
+   * @default false
+   */
+  measureItemHeight?: boolean;
   /**
    * 오버스캔 (화면 밖에 렌더링할 추가 아이템 개수)
    * @default 3
@@ -117,6 +137,8 @@ export function useVirtualList(
     itemHeight,
     containerHeight: initialContainerHeight = 0,
     containerRef,
+    itemSpacing = 0,
+    measureItemHeight = false,
     overscan = 3,
     scrollOffset: initialScrollOffset = 0,
     scrollTarget = "container",
@@ -140,6 +162,9 @@ export function useVirtualList(
     }
     return initialContainerHeight > 0 ? initialContainerHeight : 0;
   });
+  // 배열로 관리하여 인덱스 기반 접근이 더 직관적이고 React가 변경을 잘 감지함
+  const [itemHeights, setItemHeights] = useState<(number | undefined)[]>([]);
+  const itemRefsMap = useRef<Map<number, HTMLElement>>(new Map());
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const rafIdRef = useRef<number | null>(null);
   const containerOffsetRef = useRef<number>(0); // 컨테이너의 초기 offset 저장
@@ -211,22 +236,189 @@ export function useVirtualList(
     };
   }, [scrollTarget]);
 
-  // 아이템 높이 계산 함수
-  const getItemHeight = useCallback(
-    (index: number): number => {
-      return typeof itemHeight === "function" ? itemHeight(index) : itemHeight;
+  // 아이템 높이 측정 함수
+  const measureItemHeightAtIndex = useCallback((index: number, element: HTMLElement) => {
+    const height = element.offsetHeight;
+    if (height > 0) {
+      setItemHeights((prev) => {
+        // 배열 크기가 부족하면 확장
+        const newHeights = [...prev];
+        while (newHeights.length <= index) {
+          newHeights.push(undefined);
+        }
+        
+        const currentHeight = newHeights[index];
+        // 높이가 변경되지 않았으면 업데이트하지 않음 (불필요한 리렌더링 방지)
+        if (currentHeight !== undefined && Math.abs(currentHeight - height) < 1) {
+          return prev; // 변경 없음
+        }
+        
+        // 새로운 배열을 생성하여 React가 변경을 감지하도록 함
+        newHeights[index] = height;
+        return newHeights;
+      });
+    }
+  }, []);
+
+  // 아이템 높이 자동 측정 (measureItemHeight가 true인 경우)
+  useEffect(() => {
+    if (!measureItemHeight) return;
+
+    const observers: ResizeObserver[] = [];
+    const observedElements = new Set<HTMLElement>();
+
+    itemRefsMap.current.forEach((element, index) => {
+      if (!element || observedElements.has(element)) return;
+
+      observedElements.add(element);
+
+      // 즉시 높이 측정
+      measureItemHeightAtIndex(index, element);
+
+      const observer = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const element = entry.target as HTMLElement;
+          const height = element.offsetHeight || entry.contentRect.height;
+          if (height > 0) {
+            setItemHeights((prev) => {
+              // 배열 크기가 부족하면 확장
+              const newHeights = [...prev];
+              while (newHeights.length <= index) {
+                newHeights.push(undefined);
+              }
+              
+              const currentHeight = newHeights[index];
+              // 높이가 변경되지 않았으면 업데이트하지 않음
+              if (currentHeight !== undefined && Math.abs(currentHeight - height) < 1) {
+                return prev;
+              }
+              
+              // 새로운 배열을 생성하여 React가 변경을 감지하도록 함
+              newHeights[index] = height;
+              return newHeights;
+            });
+          }
+        }
+      });
+
+      observer.observe(element);
+      observers.push(observer);
+    });
+
+    // 약간의 지연 후 새로 추가된 요소도 측정
+    const timeoutId = setTimeout(() => {
+      itemRefsMap.current.forEach((element, index) => {
+        if (!element || observedElements.has(element)) return;
+
+        observedElements.add(element);
+        measureItemHeightAtIndex(index, element);
+
+        const observer = new ResizeObserver((entries) => {
+          for (const entry of entries) {
+            const element = entry.target as HTMLElement;
+            const height = element.offsetHeight || entry.contentRect.height;
+            if (height > 0) {
+              setItemHeights((prev) => {
+                // 배열 크기가 부족하면 확장
+                const newHeights = [...prev];
+                while (newHeights.length <= index) {
+                  newHeights.push(undefined);
+                }
+                
+                const currentHeight = newHeights[index];
+                if (currentHeight !== undefined && Math.abs(currentHeight - height) < 1) {
+                  return prev;
+                }
+                
+                newHeights[index] = height;
+                return newHeights;
+              });
+            }
+          }
+        });
+
+        observer.observe(element);
+        observers.push(observer);
+      });
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      observers.forEach((observer) => observer.disconnect());
+    };
+  }, [measureItemHeight, itemCount, measureItemHeightAtIndex]);
+
+  // 아이템 ref 콜백 생성 함수
+  const createItemRef = useCallback(
+    (index: number) => (element: HTMLElement | null) => {
+      if (element) {
+        const previousElement = itemRefsMap.current.get(index);
+        // 같은 요소면 업데이트하지 않음 (무한 루프 방지)
+        if (previousElement === element) {
+          return;
+        }
+        itemRefsMap.current.set(index, element);
+        // ref가 설정되면 즉시 높이 측정
+        if (measureItemHeight) {
+          // 여러 프레임에 걸쳐 측정하여 정확한 높이 확보
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              if (itemRefsMap.current.has(index)) {
+                const el = itemRefsMap.current.get(index);
+                if (el && el === element) {
+                  measureItemHeightAtIndex(index, el);
+                }
+              }
+            });
+          });
+        }
+      } else {
+        const hadElement = itemRefsMap.current.has(index);
+        itemRefsMap.current.delete(index);
+        // 요소 삭제 시 높이도 삭제하지 않음 (이전 높이를 유지하여 안정성 확보)
+        // 높이는 ResizeObserver가 자동으로 업데이트하거나, 새 요소가 설정될 때 업데이트됨
+      }
     },
-    [itemHeight]
+    [measureItemHeight, measureItemHeightAtIndex]
   );
 
-  // 각 아이템의 시작 위치 계산
+  // 아이템 높이 계산 함수 (itemHeights를 직접 참조)
+  // 배열을 사용하므로 React가 변경을 자동으로 감지함
   const itemPositions = useMemo(() => {
+    const getItemHeight = (index: number): number => {
+      // measureItemHeight가 활성화되고 해당 인덱스의 높이가 측정된 경우
+      if (measureItemHeight && index < itemHeights.length && itemHeights[index] !== undefined) {
+        const measuredHeight = itemHeights[index]!;
+        return measuredHeight + itemSpacing;
+      }
+      // 그 외의 경우 기존 로직 사용
+      const baseHeight =
+        typeof itemHeight === "function" ? itemHeight(index) : itemHeight;
+      return baseHeight;
+    };
+
     const positions: number[] = [0];
     for (let i = 1; i < itemCount; i++) {
       positions[i] = positions[i - 1] + getItemHeight(i - 1);
     }
     return positions;
-  }, [itemCount, getItemHeight]);
+  }, [itemCount, itemHeight, itemHeights, measureItemHeight, itemSpacing]);
+
+  // getItemHeight 함수 (외부에서도 사용하기 위해)
+  const getItemHeight = useCallback(
+    (index: number): number => {
+      // measureItemHeight가 활성화되고 해당 인덱스의 높이가 측정된 경우
+      if (measureItemHeight && index < itemHeights.length && itemHeights[index] !== undefined) {
+        const measuredHeight = itemHeights[index]!;
+        return measuredHeight + itemSpacing;
+      }
+      // 그 외의 경우 기존 로직 사용
+      const baseHeight =
+        typeof itemHeight === "function" ? itemHeight(index) : itemHeight;
+      return baseHeight;
+    },
+    [itemHeight, itemHeights, measureItemHeight, itemSpacing]
+  );
 
   // 전체 높이 계산
   const totalHeight = useMemo(() => {
@@ -275,6 +467,7 @@ export function useVirtualList(
         start,
         size,
         end: start + size,
+        ref: createItemRef(i),
       });
     }
 
