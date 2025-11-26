@@ -503,10 +503,7 @@ export default function HomePage() {
               </Card>
             )}
             {!loading && !error && filteredTweets.length > 0 && (
-              <div
-                ref={containerRef}
-                style={{ position: "relative", height: totalHeight }}
-              >
+              <div ref={containerRef} style={{ position: "relative" }}>
                 {virtualItems.map((virtualItem: VirtualItem) => {
                   const t = filteredTweets[virtualItem.index];
                   if (!t) return null;
@@ -551,15 +548,17 @@ export default function HomePage() {
                     </div>
                   );
                 })}
-                {/* 무한 스크롤 sentinel 및 로딩 인디케이터 */}
+                {/* 가상화를 위한 높이 확보 spacer */}
                 <div
-                  ref={sentinelRef}
                   style={{
-                    position: "absolute",
-                    top: totalHeight,
+                    height: totalHeight,
                     width: "100%",
+                    pointerEvents: "none",
                   }}
-                >
+                  aria-hidden="true"
+                />
+                {/* 무한 스크롤 sentinel 및 로딩 인디케이터 */}
+                <div ref={sentinelRef} className="py-4">
                   {isLoadingMore && (
                     <div className="space-y-4 py-4">
                       {Array.from({ length: 3 }).map((_, idx) => (
