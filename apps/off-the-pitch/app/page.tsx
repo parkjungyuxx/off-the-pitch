@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { IoIosArrowDown } from "react-icons/io";
@@ -200,6 +200,7 @@ export default function HomePage() {
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
   const [isChatModalOpen, setIsChatModalOpen] = useState<boolean>(false);
   const [summary, setSummary] = useState<string>("");
@@ -406,7 +407,8 @@ export default function HomePage() {
     itemCount: filteredTweets.length,
     itemHeight: ESTIMATED_ITEM_HEIGHT,
     scrollTarget: "window",
-    overscan: 3, // 화면 밖에 3개 아이템 추가 렌더링
+    containerRef: containerRef as React.RefObject<HTMLElement | null>, // 컨테이너 ref 전달하여 offset 계산
+    overscan: 5, // 화면 밖에 5개 아이템 추가 렌더링 (더 여유있게)
   });
 
   if (checkingAuth) {
@@ -501,7 +503,10 @@ export default function HomePage() {
               </Card>
             )}
             {!loading && !error && filteredTweets.length > 0 && (
-              <div style={{ position: "relative", height: totalHeight }}>
+              <div
+                ref={containerRef}
+                style={{ position: "relative", height: totalHeight }}
+              >
                 {virtualItems.map((virtualItem: VirtualItem) => {
                   const t = filteredTweets[virtualItem.index];
                   if (!t) return null;
