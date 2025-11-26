@@ -17,6 +17,7 @@ import {
   unfollowJournalist,
   getFollowedJournalists,
 } from "@/lib/follows";
+import { useInfiniteScroll } from "@bongsik/infinite-scroll";
 
 // 임시 mock 데이터 (무한스크롤 및 리스트 가상화 테스트용)
 const createMockTweet = (index: number): Tweet => ({
@@ -37,6 +38,9 @@ const createMockTweet = (index: number): Tweet => ({
 const MOCK_TWEETS: Tweet[] = Array.from({ length: 300 }, (_, i) =>
   createMockTweet(i + 1)
 );
+
+// 한 번에 로드할 아이템 수
+const ITEMS_PER_PAGE = 20;
 import { useTheme } from "@/hooks/use-theme";
 import {
   Dialog,
@@ -192,6 +196,8 @@ export default function HomePage() {
   const [showLeagueSelector, setShowLeagueSelector] = useState(false);
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+  const [hasMore, setHasMore] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
   const [isChatModalOpen, setIsChatModalOpen] = useState<boolean>(false);
@@ -241,8 +247,9 @@ export default function HomePage() {
     }
   }, [isChatModalOpen]);
 
+  // 초기 데이터 로드
   useEffect(() => {
-    const loadData = async () => {
+    const loadInitialData = async () => {
       try {
         setLoading(true);
         setError(null);
@@ -250,9 +257,10 @@ export default function HomePage() {
         // 테스트를 위해 네트워크 지연 시뮬레이션 (1초)
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        // 임시: Mock 데이터 300개 사용 (무한스크롤 및 리스트 가상화 테스트용)
-        // TODO: 실제 Supabase 데이터로 교체 예정
-        setTweets(MOCK_TWEETS);
+        // 초기에는 첫 페이지만 로드
+        const initialTweets = MOCK_TWEETS.slice(0, ITEMS_PER_PAGE);
+        setTweets(initialTweets);
+        setHasMore(MOCK_TWEETS.length > ITEMS_PER_PAGE);
 
         // 팔로우한 기자 목록은 여전히 로드 (팔로우 기능 테스트용)
         const followedData = await getFollowedJournalists();
@@ -270,9 +278,47 @@ export default function HomePage() {
     };
 
     if (!checkingAuth) {
-      loadData();
+      loadInitialData();
     }
   }, [checkingAuth]);
+
+  // 추가 데이터 로드 함수
+  const fetchMoreTweets = async () => {
+    if (isLoadingMore || !hasMore) return;
+
+    try {
+      setIsLoadingMore(true);
+      // 테스트를 위해 네트워크 지연 시뮬레이션 (1.5초)
+      // 무한 스크롤 로딩 상태를 명확히 확인할 수 있도록 딜레이 증가
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      const currentLength = tweets.length;
+      const nextTweets = MOCK_TWEETS.slice(
+        currentLength,
+        currentLength + ITEMS_PER_PAGE
+      );
+
+      if (nextTweets.length > 0) {
+        setTweets((prev) => [...prev, ...nextTweets]);
+        setHasMore(currentLength + nextTweets.length < MOCK_TWEETS.length);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error("Failed to load more tweets:", error);
+      setError("추가 피드를 불러오지 못했습니다.");
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  // 무한 스크롤 훅 설정
+  const { sentinelRef } = useInfiniteScroll({
+    loadMore: fetchMoreTweets,
+    hasMore,
+    isLoading: isLoadingMore,
+    threshold: 200, // 하단 200px 전에 미리 로드
+  });
 
   const toggleFavorite = async (handle: string, journalistName: string) => {
     const isFollowing = followedJournalists.has(handle);
@@ -472,6 +518,27 @@ export default function HomePage() {
                   />
                 );
               })}
+            {/* 무한 스크롤 sentinel 및 로딩 인디케이터 */}
+            {!loading && !error && filteredTweets.length > 0 && (
+              <div ref={sentinelRef} className="py-4">
+                {isLoadingMore && (
+                  <div className="space-y-4">
+                    {Array.from({ length: 3 }).map((_, idx) => (
+                      <FeedPostSkeleton key={`loading-skeleton-${idx}`} />
+                    ))}
+                  </div>
+                )}
+                {!hasMore && !isLoadingMore && filteredTweets.length > 0 && (
+                  <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
+                    <div className="flex flex-col items-center justify-center py-8">
+                      <p className="text-muted-foreground text-sm text-center">
+                        모든 피드를 불러왔습니다.
+                      </p>
+                    </div>
+                  </Card>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </main>
