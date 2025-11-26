@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { IoIosArrowDown } from "react-icons/io";
@@ -182,6 +182,10 @@ export default function HomePage() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const itemRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const [itemHeights, setItemHeights] = useState<Map<number, number>>(
+    new Map()
+  );
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
   const [isChatModalOpen, setIsChatModalOpen] = useState<boolean>(false);
   const [summary, setSummary] = useState<string>("");
@@ -390,18 +394,58 @@ export default function HomePage() {
   }, [tweets, selectedLeague]);
 
   // 리스트 가상화 훅 설정
-  // FeedPost의 평균 높이 + space-y-4 간격(16px) 포함
-  // 실제 FeedPost 높이에 맞춰 조정 필요
-  // 브라우저 개발자 도구로 실제 높이 확인 후 조정: 실제 높이 + 16px
-  const ESTIMATED_ITEM_HEIGHT = 200 + 16; // 아이템 높이(200px) + 간격(16px) - 더 작게 조정
+  const SPACING = 16; // mb-4 = 16px
+  const DEFAULT_ITEM_HEIGHT = 200 + SPACING; // 기본 추정값 (아이템 높이 + 간격)
+
+  // 각 아이템의 높이를 동적으로 반환하는 함수
+  // ResizeObserver가 측정한 높이에는 mb-4(margin-bottom)가 포함되지 않으므로 간격을 추가
+  const getItemHeight = useCallback(
+    (index: number): number => {
+      const measuredHeight = itemHeights.get(index);
+      if (measuredHeight) {
+        return measuredHeight + SPACING; // 측정된 높이 + 간격
+      }
+      return DEFAULT_ITEM_HEIGHT; // 기본값은 이미 간격 포함
+    },
+    [itemHeights]
+  );
 
   const { virtualItems, totalHeight } = useVirtualList({
     itemCount: filteredTweets.length,
-    itemHeight: ESTIMATED_ITEM_HEIGHT,
+    itemHeight: getItemHeight, // 함수로 전달하여 동적 높이 지원
     scrollTarget: "window",
-    containerRef: containerRef as React.RefObject<HTMLElement | null>, // 컨테이너 ref 전달하여 offset 계산
-    overscan: 5, // 화면 밖에 5개 아이템 추가 렌더링 (더 여유있게)
+    containerRef: containerRef as React.RefObject<HTMLElement | null>,
+    overscan: 5,
   });
+
+  // 각 아이템의 높이 측정 (ResizeObserver 사용)
+  useEffect(() => {
+    const observers: ResizeObserver[] = [];
+
+    itemRefs.current.forEach((element, index) => {
+      if (!element) return;
+
+      const observer = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const height = entry.contentRect.height;
+          if (height > 0) {
+            setItemHeights((prev) => {
+              const next = new Map(prev);
+              next.set(index, height);
+              return next;
+            });
+          }
+        }
+      });
+
+      observer.observe(element);
+      observers.push(observer);
+    });
+
+    return () => {
+      observers.forEach((observer) => observer.disconnect());
+    };
+  }, [filteredTweets.length, virtualItems.length]);
 
   if (checkingAuth) {
     return null;
@@ -534,6 +578,14 @@ export default function HomePage() {
                   return (
                     <div
                       key={id}
+                      ref={(el) => {
+                        if (el) {
+                          itemRefs.current.set(virtualItem.index, el);
+                        } else {
+                          itemRefs.current.delete(virtualItem.index);
+                        }
+                      }}
+                      className="mb-4"
                       style={{
                         position: "absolute",
                         top: virtualItem.start,
