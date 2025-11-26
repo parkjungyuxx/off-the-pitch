@@ -18,6 +18,7 @@ import {
   getFollowedJournalists,
 } from "@/lib/follows";
 import { useInfiniteScroll } from "@bongsik/infinite-scroll";
+import { useVirtualList, type VirtualItem } from "@bongsik/virtual-list";
 
 // 임시 mock 데이터 (무한스크롤 및 리스트 가상화 테스트용)
 const createMockTweet = (index: number): Tweet => ({
@@ -395,6 +396,19 @@ export default function HomePage() {
     });
   }, [tweets, selectedLeague]);
 
+  // 리스트 가상화 훅 설정
+  // FeedPost의 평균 높이 + space-y-4 간격(16px) 포함
+  // 실제 FeedPost 높이에 맞춰 조정 필요
+  // 브라우저 개발자 도구로 실제 높이 확인 후 조정: 실제 높이 + 16px
+  const ESTIMATED_ITEM_HEIGHT = 200 + 16; // 아이템 높이(200px) + 간격(16px) - 더 작게 조정
+
+  const { virtualItems, totalHeight } = useVirtualList({
+    itemCount: filteredTweets.length,
+    itemHeight: ESTIMATED_ITEM_HEIGHT,
+    scrollTarget: "window",
+    overscan: 3, // 화면 밖에 3개 아이템 추가 렌더링
+  });
+
   if (checkingAuth) {
     return null;
   }
@@ -467,10 +481,12 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="p-4 lg:p-6 space-y-4">
+          <div className="p-4 lg:p-6">
             {loading &&
               Array.from({ length: 3 }).map((_, idx) => (
-                <FeedPostSkeleton key={idx} />
+                <div key={idx} className="mb-4">
+                  <FeedPostSkeleton />
+                </div>
               ))}
             {error && <p className="text-destructive text-sm">{error}</p>}
             {!loading && !error && filteredTweets.length === 0 && (
@@ -484,59 +500,80 @@ export default function HomePage() {
                 </div>
               </Card>
             )}
-            {!loading &&
-              !error &&
-              filteredTweets.length > 0 &&
-              filteredTweets.map((t) => {
-                const displayName =
-                  (t.author_name?.split("@")[0]?.trim() as string) ||
-                  t.author_name;
-                const mapped: FeedPostProps = {
-                  journalist: displayName,
-                  handle: `@${t.author_username}`,
-                  credibility: 2, // 기본값 (Tier 2)
-                  content: t.tweet_text,
-                  images: (t.images ?? [])
-                    .map((u) => normalizeTwitterMediaUrl(u)!)
-                    .filter(Boolean),
-                  time: formatRelativeTime(t.created_at),
-                  link: t.url,
-                  avatar:
-                    normalizeTwitterMediaUrl(t.author_profile_image) ||
-                    "/placeholder.svg",
-                };
-                const id = t.tweet_id;
-                const handle = `@${t.author_username}`;
-                const isFollowing = followedJournalists.has(handle);
-
-                return (
-                  <FeedPost
-                    key={id}
-                    {...mapped}
-                    isFavorited={isFollowing}
-                    onToggleFavorite={() => toggleFavorite(handle, displayName)}
-                  />
-                );
-              })}
-            {/* 무한 스크롤 sentinel 및 로딩 인디케이터 */}
             {!loading && !error && filteredTweets.length > 0 && (
-              <div ref={sentinelRef} className="py-4">
-                {isLoadingMore && (
-                  <div className="space-y-4">
-                    {Array.from({ length: 3 }).map((_, idx) => (
-                      <FeedPostSkeleton key={`loading-skeleton-${idx}`} />
-                    ))}
-                  </div>
-                )}
-                {!hasMore && !isLoadingMore && filteredTweets.length > 0 && (
-                  <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
-                    <div className="flex flex-col items-center justify-center py-8">
-                      <p className="text-muted-foreground text-sm text-center">
-                        모든 피드를 불러왔습니다.
-                      </p>
+              <div style={{ position: "relative", height: totalHeight }}>
+                {virtualItems.map((virtualItem: VirtualItem) => {
+                  const t = filteredTweets[virtualItem.index];
+                  if (!t) return null;
+
+                  const displayName =
+                    (t.author_name?.split("@")[0]?.trim() as string) ||
+                    t.author_name;
+                  const mapped: FeedPostProps = {
+                    journalist: displayName,
+                    handle: `@${t.author_username}`,
+                    credibility: 2, // 기본값 (Tier 2)
+                    content: t.tweet_text,
+                    images: (t.images ?? [])
+                      .map((u) => normalizeTwitterMediaUrl(u)!)
+                      .filter(Boolean),
+                    time: formatRelativeTime(t.created_at),
+                    link: t.url,
+                    avatar:
+                      normalizeTwitterMediaUrl(t.author_profile_image) ||
+                      "/placeholder.svg",
+                  };
+                  const id = t.tweet_id;
+                  const handle = `@${t.author_username}`;
+                  const isFollowing = followedJournalists.has(handle);
+
+                  return (
+                    <div
+                      key={id}
+                      style={{
+                        position: "absolute",
+                        top: virtualItem.start,
+                        width: "100%",
+                      }}
+                    >
+                      <FeedPost
+                        {...mapped}
+                        isFavorited={isFollowing}
+                        onToggleFavorite={() =>
+                          toggleFavorite(handle, displayName)
+                        }
+                      />
                     </div>
-                  </Card>
-                )}
+                  );
+                })}
+                {/* 무한 스크롤 sentinel 및 로딩 인디케이터 */}
+                <div
+                  ref={sentinelRef}
+                  style={{
+                    position: "absolute",
+                    top: totalHeight,
+                    width: "100%",
+                  }}
+                >
+                  {isLoadingMore && (
+                    <div className="space-y-4 py-4">
+                      {Array.from({ length: 3 }).map((_, idx) => (
+                        <FeedPostSkeleton key={`loading-skeleton-${idx}`} />
+                      ))}
+                    </div>
+                  )}
+                  {!hasMore && !isLoadingMore && filteredTweets.length > 0 && (
+                    <div className="py-4">
+                      <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
+                        <div className="flex flex-col items-center justify-center py-8">
+                          <p className="text-muted-foreground text-sm text-center">
+                            모든 피드를 불러왔습니다.
+                          </p>
+                        </div>
+                      </Card>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

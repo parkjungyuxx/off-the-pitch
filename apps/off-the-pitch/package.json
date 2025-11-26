@@ -63,7 +63,8 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",
     "zod": "3.25.76",
-    "@bongsik/infinite-scroll": "workspace:*"
+    "@bongsik/infinite-scroll": "workspace:*",
+    "@bongsik/virtual-list": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",
