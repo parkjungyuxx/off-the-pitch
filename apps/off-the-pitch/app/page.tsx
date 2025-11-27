@@ -533,7 +533,7 @@ export default function HomePage() {
 
                   return (
                     <div
-                      key={id}
+                      key={`${id}-${virtualItem.index}`}
                       ref={virtualItem.ref}
                       className="mb-4"
                       style={{
