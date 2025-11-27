@@ -95,6 +95,8 @@ export default function JournalistPage({ params }: JournalistPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFollowing, setIsFollowing] = useState<boolean>(false);
+  const [avatarError, setAvatarError] = useState<boolean>(false);
+  const FALLBACK_AVATAR = "/placeholder-user.jpg";
 
   useEffect(() => {
     const run = async () => {
@@ -152,6 +154,11 @@ export default function JournalistPage({ params }: JournalistPageProps) {
     };
     run();
   }, [username]);
+
+  // 프로필이 변경될 때 avatarError 리셋
+  useEffect(() => {
+    setAvatarError(false);
+  }, [profile?.profileImage, username]);
 
   // 프로필 정보가 없을 때 기본값
   const displayProfile = useMemo(() => {
@@ -251,11 +258,12 @@ export default function JournalistPage({ params }: JournalistPageProps) {
               <Card className="p-6 rounded-2xl border border-border dark:border-[rgb(57,57,57)] bg-card">
                 <div className="flex items-start gap-4">
                   <Image
-                    src={displayProfile.avatar}
+                    src={avatarError || !displayProfile.avatar ? FALLBACK_AVATAR : displayProfile.avatar}
                     alt={displayProfile.name}
                     width={72}
                     height={72}
                     className="rounded-full"
+                    onError={() => setAvatarError(true)}
                   />
                   <div className="flex-1 min-w-0 space-y-2">
                     <div className="flex items-center gap-2 flex-wrap">
