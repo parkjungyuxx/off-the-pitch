@@ -21,26 +21,6 @@ import { useTheme } from "@/hooks/use-theme";
 import { useInfiniteScroll } from "@bongsik/infinite-scroll";
 import { useVirtualList, type VirtualItem } from "@bongsik/virtual-list";
 
-// 임시 mock 데이터 (무한스크롤 및 리스트 가상화 테스트용)
-const createMockTweet = (index: number): Tweet => ({
-  tweet_id: `mock_tweet_favorites_${index}`,
-  author_name: "Fabrizio Romano",
-  author_username: "FabrizioRomano",
-  author_profile_image:
-    "https://pbs.twimg.com/profile_images/1649219006229082112/Q4JSUo7r_400x400.jpg",
-  tweet_text:
-    "🚨 EXCLUSIVE: Manchester United are preparing a new bid for the midfielder. Sources confirm negotiations are advancing. More to follow... #MUFC #TransferNews",
-  images: ["https://pbs.twimg.com/media/FakeImage1.jpg?format=jpg&name=large"],
-  videos: null,
-  created_at: new Date(Date.now() - index * 60000).toISOString(), // 각 트윗마다 1분씩 차이
-  url: `https://twitter.com/FabrizioRomano/status/mock_favorites_${index}`,
-});
-
-// Mock 데이터 300개 생성 (전체 데이터)
-const MOCK_TWEETS: Tweet[] = Array.from({ length: 300 }, (_, i) =>
-  createMockTweet(i + 1)
-);
-
 // 한 번에 로드할 아이템 수
 const ITEMS_PER_PAGE = 20;
 
@@ -123,14 +103,12 @@ export default function FavoritesPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
   const scrollRef = useDragScroll<HTMLDivElement>();
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const firstItemRef = useRef<HTMLDivElement | null>(null);
-  const [measuredItemHeight, setMeasuredItemHeight] = useState<number | null>(
-    null
-  );
+  const [journalistUsernames, setJournalistUsernames] = useState<string[]>([]);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -153,70 +131,69 @@ export default function FavoritesPage() {
   }, [router, supabase]);
 
 
+  // 초기 데이터 로드
   useEffect(() => {
-    const loadFollowedJournalistsTweets = async () => {
+    const loadInitialData = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // 테스트를 위해 네트워크 지연 시뮬레이션 (1초)
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // 팔로우한 기자 목록 가져오기
+        const followedData = await getFollowedJournalists();
+        if (!followedData.data || followedData.data.length === 0) {
+          setFollowedJournalists(new Set());
+          setTweets([]);
+          setFollowedJournalistsList([]);
+          setHasMore(false);
+          setNextCursor(null);
+          setLoading(false);
+          return;
+        }
+
+        // 팔로우한 기자들의 username 추출 (@ 제거)
+        const usernames = followedData.data.map((f) =>
+          f.journalist_handle.replace(/^@/, "")
+        );
+        setJournalistUsernames(usernames);
 
         // 초기에는 첫 페이지만 로드
-        const initialTweets = MOCK_TWEETS.slice(0, ITEMS_PER_PAGE);
-        setTweets(initialTweets);
-        setHasMore(MOCK_TWEETS.length > ITEMS_PER_PAGE);
+        const tweetsData = await fetchTweets({
+          limit: ITEMS_PER_PAGE,
+          journalists: usernames,
+        });
 
-        // 팔로우한 기자 목록은 백그라운드에서 로드
-        const timeoutPromise = new Promise<{ data: null; error: string }>(
-          (resolve) =>
-            setTimeout(
-              () => resolve({ data: null, error: "타임아웃" }),
-              5000
-            )
-        );
+        setTweets(tweetsData.items);
+        setNextCursor(tweetsData.pagination.nextCursor);
+        setHasMore(tweetsData.pagination.hasMore);
 
-        const followedData = await Promise.race([
-          getFollowedJournalists(),
-          timeoutPromise,
-        ]);
+        // 기자별 프로필 이미지 추출 (트윗에서 가져오기)
+        const journalistMap = new Map<
+          string,
+          { handle: string; name: string; avatar: string }
+        >();
 
-        if (followedData.data && followedData.data.length > 0) {
-          const handles = new Set(
-            followedData.data.map((f) => f.journalist_handle)
+        followedData.data.forEach((f) => {
+          const handle = f.journalist_handle;
+          const username = handle.replace(/^@/, "");
+          // 해당 기자의 첫 번째 트윗에서 프로필 이미지 가져오기
+          const journalistTweet = tweetsData.items.find(
+            (t) => t.author_username === username
           );
-          setFollowedJournalists(handles);
-
-          // 기자별 프로필 이미지 추출
-          const journalistMap = new Map<
-            string,
-            { handle: string; name: string; avatar: string }
-          >();
-
-          followedData.data.forEach((f) => {
-            const handle = f.journalist_handle;
-            journalistMap.set(handle, {
-              handle,
-              name: f.journalist_name,
-              avatar: "/placeholder-user.jpg",
-            });
+          journalistMap.set(handle, {
+            handle,
+            name: f.journalist_name,
+            avatar:
+              normalizeTwitterMediaUrl(journalistTweet?.author_profile_image) ||
+              "/placeholder-user.jpg",
           });
+        });
 
-          setFollowedJournalistsList(Array.from(journalistMap.values()));
-        } else {
-          // Mock 기자 데이터 (테스트용)
-          const mockJournalists = [
-            {
-              handle: "@FabrizioRomano",
-              name: "Fabrizio Romano",
-              avatar: "/placeholder-user.jpg",
-            },
-          ];
-          setFollowedJournalistsList(mockJournalists);
-          setFollowedJournalists(new Set(["@FabrizioRomano"]));
-        }
+        setFollowedJournalistsList(Array.from(journalistMap.values()));
+        setFollowedJournalists(
+          new Set(followedData.data.map((f) => f.journalist_handle))
+        );
       } catch (err) {
-        console.error("Load followed journalists tweets error:", err);
+        console.error("Load initial data error:", err);
         setError("피드를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
       } finally {
         setLoading(false);
@@ -224,28 +201,27 @@ export default function FavoritesPage() {
     };
 
     if (!checkingAuth) {
-      loadFollowedJournalistsTweets();
+      loadInitialData();
     }
   }, [checkingAuth]);
 
   // 추가 데이터 로드 함수
   const fetchMoreTweets = async () => {
-    if (isLoadingMore || !hasMore) return;
+    if (isLoadingMore || !hasMore || !nextCursor || journalistUsernames.length === 0) return;
 
     try {
       setIsLoadingMore(true);
-      // 테스트를 위해 네트워크 지연 시뮬레이션 (1.5초)
-      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      const currentLength = tweets.length;
-      const nextTweets = MOCK_TWEETS.slice(
-        currentLength,
-        currentLength + ITEMS_PER_PAGE
-      );
+      const tweetsData = await fetchTweets({
+        limit: ITEMS_PER_PAGE,
+        journalists: journalistUsernames,
+        afterId: nextCursor,
+      });
 
-      if (nextTweets.length > 0) {
-        setTweets((prev) => [...prev, ...nextTweets]);
-        setHasMore(currentLength + nextTweets.length < MOCK_TWEETS.length);
+      if (tweetsData.items.length > 0) {
+        setTweets((prev) => [...prev, ...tweetsData.items]);
+        setNextCursor(tweetsData.pagination.nextCursor);
+        setHasMore(tweetsData.pagination.hasMore);
       } else {
         setHasMore(false);
       }
@@ -274,30 +250,14 @@ export default function FavoritesPage() {
   }, [tweets, selectedJournalist]);
 
   // 리스트 가상화 훅 설정
-  const SPACING = 16; // space-y-4 = 16px
-  const DEFAULT_ITEM_HEIGHT = 200 + SPACING; // 기본 추정값 (200px + 16px)
-  const itemHeight =
-    measuredItemHeight !== null
-      ? measuredItemHeight + SPACING
-      : DEFAULT_ITEM_HEIGHT;
-
-  // 첫 번째 아이템의 실제 높이 측정
-  useEffect(() => {
-    if (
-      firstItemRef.current &&
-      measuredItemHeight === null &&
-      filteredTweets.length > 0
-    ) {
-      const height = firstItemRef.current.offsetHeight;
-      if (height > 0) {
-        setMeasuredItemHeight(height);
-      }
-    }
-  }, [filteredTweets.length, measuredItemHeight]);
+  const SPACING = 16; // mb-4 = 16px
+  const DEFAULT_ITEM_HEIGHT = 200; // 기본 추정값 (간격 제외)
 
   const { virtualItems, totalHeight } = useVirtualList({
     itemCount: filteredTweets.length,
-    itemHeight: itemHeight,
+    itemHeight: DEFAULT_ITEM_HEIGHT, // 초기 추정값
+    itemSpacing: SPACING, // 아이템 간 간격
+    measureItemHeight: true, // 자동 높이 측정 활성화
     scrollTarget: "window",
     containerRef: containerRef as React.RefObject<HTMLElement | null>,
     overscan: 5,
@@ -465,7 +425,7 @@ export default function FavoritesPage() {
                   return (
                     <div
                       key={id}
-                      ref={isFirstItem ? firstItemRef : null}
+                      ref={virtualItem.ref}
                       className="mb-4"
                       style={{
                         position: "absolute",

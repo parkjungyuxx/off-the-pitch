@@ -20,26 +20,6 @@ import {
 import { useInfiniteScroll } from "@bongsik/infinite-scroll";
 import { useVirtualList, type VirtualItem } from "@bongsik/virtual-list";
 
-// 임시 mock 데이터 (무한스크롤 및 리스트 가상화 테스트용)
-const createMockTweet = (index: number): Tweet => ({
-  tweet_id: `mock_tweet_${index}`,
-  author_name: "Fabrizio Romano",
-  author_username: "FabrizioRomano",
-  author_profile_image:
-    "https://pbs.twimg.com/profile_images/1649219006229082112/Q4JSUo7r_400x400.jpg",
-  tweet_text:
-    "🚨 EXCLUSIVE: Manchester United are preparing a new bid for the midfielder. Sources confirm negotiations are advancing. More to follow... #MUFC #TransferNews",
-  images: ["https://pbs.twimg.com/media/FakeImage1.jpg?format=jpg&name=large"],
-  videos: null,
-  created_at: new Date(Date.now() - index * 60000).toISOString(), // 각 트윗마다 1분씩 차이
-  url: `https://twitter.com/FabrizioRomano/status/mock_${index}`,
-});
-
-// Mock 데이터 300개 생성 (전체 데이터)
-const MOCK_TWEETS: Tweet[] = Array.from({ length: 300 }, (_, i) =>
-  createMockTweet(i + 1)
-);
-
 // 한 번에 로드할 아이템 수
 const ITEMS_PER_PAGE = 20;
 import { useTheme } from "@/hooks/use-theme";
@@ -199,6 +179,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
@@ -256,25 +237,39 @@ export default function HomePage() {
         setLoading(true);
         setError(null);
 
-        // 테스트를 위해 네트워크 지연 시뮬레이션 (1초)
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
         // 초기에는 첫 페이지만 로드
-        const initialTweets = MOCK_TWEETS.slice(0, ITEMS_PER_PAGE);
-        setTweets(initialTweets);
-        setHasMore(MOCK_TWEETS.length > ITEMS_PER_PAGE);
+        const tweetsData = await fetchTweets({
+          limit: ITEMS_PER_PAGE,
+        });
 
-        // 팔로우한 기자 목록은 여전히 로드 (팔로우 기능 테스트용)
-        const followedData = await getFollowedJournalists();
+        setTweets(tweetsData.items);
+        setNextCursor(tweetsData.pagination.nextCursor);
+        setHasMore(tweetsData.pagination.hasMore);
+
+        // 로딩 상태를 먼저 false로 설정하여 데이터를 즉시 표시
+        setLoading(false);
+
+        // 팔로우한 기자 목록은 백그라운드에서 로드
+        // 타임아웃을 추가하여 너무 오래 걸리지 않도록 함
+        const timeoutPromise = new Promise<{ data: null; error: string }>(
+          (resolve) =>
+            setTimeout(() => resolve({ data: null, error: "타임아웃" }), 5000)
+        );
+
+        const followedData = await Promise.race([
+          getFollowedJournalists(),
+          timeoutPromise,
+        ]);
+
         if (followedData.data) {
           const handles = new Set(
             followedData.data.map((f) => f.journalist_handle)
           );
           setFollowedJournalists(handles);
         }
-      } catch {
+      } catch (error) {
+        console.error("Load initial data error:", error);
         setError("피드를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
-      } finally {
         setLoading(false);
       }
     };
@@ -286,23 +281,20 @@ export default function HomePage() {
 
   // 추가 데이터 로드 함수
   const fetchMoreTweets = async () => {
-    if (isLoadingMore || !hasMore) return;
+    if (isLoadingMore || !hasMore || !nextCursor) return;
 
     try {
       setIsLoadingMore(true);
-      // 테스트를 위해 네트워크 지연 시뮬레이션 (1.5초)
-      // 무한 스크롤 로딩 상태를 명확히 확인할 수 있도록 딜레이 증가
-      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      const currentLength = tweets.length;
-      const nextTweets = MOCK_TWEETS.slice(
-        currentLength,
-        currentLength + ITEMS_PER_PAGE
-      );
+      const tweetsData = await fetchTweets({
+        limit: ITEMS_PER_PAGE,
+        afterId: nextCursor,
+      });
 
-      if (nextTweets.length > 0) {
-        setTweets((prev) => [...prev, ...nextTweets]);
-        setHasMore(currentLength + nextTweets.length < MOCK_TWEETS.length);
+      if (tweetsData.items.length > 0) {
+        setTweets((prev) => [...prev, ...tweetsData.items]);
+        setNextCursor(tweetsData.pagination.nextCursor);
+        setHasMore(tweetsData.pagination.hasMore);
       } else {
         setHasMore(false);
       }
@@ -398,17 +390,17 @@ export default function HomePage() {
   }, [tweets, selectedLeague]);
 
   // 리스트 가상화 훅 설정
-  // FeedPost의 평균 높이 + space-y-4 간격(16px) 포함
-  // 실제 FeedPost 높이에 맞춰 조정 필요
-  // 브라우저 개발자 도구로 실제 높이 확인 후 조정: 실제 높이 + 16px
-  const ESTIMATED_ITEM_HEIGHT = 200 + 16; // 아이템 높이(200px) + 간격(16px) - 더 작게 조정
+  const SPACING = 16; // mb-4 = 16px
+  const DEFAULT_ITEM_HEIGHT = 200; // 기본 추정값 (간격 제외)
 
   const { virtualItems, totalHeight } = useVirtualList({
     itemCount: filteredTweets.length,
-    itemHeight: ESTIMATED_ITEM_HEIGHT,
+    itemHeight: DEFAULT_ITEM_HEIGHT, // 초기 추정값
+    itemSpacing: SPACING, // 아이템 간 간격
+    measureItemHeight: true, // 자동 높이 측정 활성화
     scrollTarget: "window",
-    containerRef: containerRef as React.RefObject<HTMLElement | null>, // 컨테이너 ref 전달하여 offset 계산
-    overscan: 5, // 화면 밖에 5개 아이템 추가 렌더링 (더 여유있게)
+    containerRef: containerRef as React.RefObject<HTMLElement | null>,
+    overscan: 5,
   });
 
   if (checkingAuth) {
@@ -541,7 +533,9 @@ export default function HomePage() {
 
                   return (
                     <div
-                      key={id}
+                      key={`${id}-${virtualItem.index}`}
+                      ref={virtualItem.ref}
+                      className="mb-4"
                       style={{
                         position: "absolute",
                         top: virtualItem.start,
