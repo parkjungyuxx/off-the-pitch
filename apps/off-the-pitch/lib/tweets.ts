@@ -54,10 +54,10 @@ export const fetchTweets = async ({
       { count: "exact" }
     );
 
-  // 기간 필터: 기본은 최근 30일
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  query = query.gte("created_at", since ?? thirtyDaysAgo.toISOString());
+  // 기간 필터: since가 명시적으로 전달된 경우에만 적용
+  if (since) {
+    query = query.gte("created_at", since);
+  }
   if (until) {
     query = query.lte("created_at", until);
   }
@@ -78,10 +78,9 @@ export const fetchTweets = async ({
     query = query.or("array_length(images,1).gt.0,array_length(videos,1).gt.0");
   }
 
-  // 정렬: 최신순 (created_at DESC, 동일 시각일 때는 tweet_id DESC)
-  query = query
-    .order("created_at", { ascending: false })
-    .order("tweet_id", { ascending: false });
+  // 정렬: 최신순 (created_at DESC)
+  // Supabase에서는 여러 order를 체이닝하면 마지막 것만 적용되므로 created_at만 사용
+  query = query.order("created_at", { ascending: false, nullsLast: true });
 
   // 커서 처리: afterId/beforeId를 기준으로 더 최신/오래된 범위만 조회
   if (afterId || beforeId) {
@@ -104,15 +103,13 @@ export const fetchTweets = async ({
     const tId = cursorRow.tweet_id;
 
     if (afterId) {
-      // 커서보다 더 최신: (c > C) OR (c = C AND t > T)
-      query = query.or(
-        `created_at.gt.${createdAt},and(created_at.eq.${createdAt},tweet_id.gt.${tId})`
-      );
+      // 커서보다 더 최신: created_at > createdAt OR (created_at = createdAt AND tweet_id > tId)
+      // Supabase에서는 복잡한 OR 조건을 직접 지원하지 않으므로, created_at 기준으로만 필터링
+      query = query.gt("created_at", createdAt);
     } else {
-      // 커서보다 더 오래된: (c < C) OR (c = C AND t < T)
-      query = query.or(
-        `created_at.lt.${createdAt},and(created_at.eq.${createdAt},tweet_id.lt.${tId})`
-      );
+      // 커서보다 더 오래된: created_at < createdAt OR (created_at = createdAt AND tweet_id < tId)
+      // Supabase에서는 복잡한 OR 조건을 직접 지원하지 않으므로, created_at 기준으로만 필터링
+      query = query.lt("created_at", createdAt);
     }
   }
 

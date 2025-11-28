@@ -288,7 +288,7 @@ export default function HomePage() {
 
       const tweetsData = await fetchTweets({
         limit: ITEMS_PER_PAGE,
-        afterId: nextCursor,
+        beforeId: nextCursor, // 더 오래된 데이터를 가져오기 위해 beforeId 사용
       });
 
       if (tweetsData.items.length > 0) {
