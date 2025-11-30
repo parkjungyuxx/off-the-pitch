@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Image from "next/image";
 import { IoIosArrowDown } from "react-icons/io";
 import { Sidebar } from "@/components/sidebar";
@@ -9,19 +8,10 @@ import { FeedPost, type FeedPostProps } from "@/components/feed-post";
 import { FeedPostSkeleton } from "@/components/feed-post-skeleton";
 import { Card } from "@/components/ui/card";
 import { LeagueSelector } from "@/components/league-selector";
-import { cn } from "@/lib/utils";
-import { fetchTweets, type Tweet } from "@/lib/tweets";
-import { createClient } from "@/lib/supabase-client";
-import {
-  followJournalist,
-  unfollowJournalist,
-  getFollowedJournalists,
-} from "@/lib/follows";
-import { useInfiniteScroll } from "@bongsik/infinite-scroll";
-import { useVirtualList, type VirtualItem } from "@bongsik/virtual-list";
-
-const ITEMS_PER_PAGE = 20;
+import { cn, normalizeTwitterMediaUrl, formatRelativeTime } from "@/lib/utils";
 import { useTheme } from "@/hooks/use-theme";
+import { useHomePage } from "@/hooks/use-home-page";
+import { useVirtualList, type VirtualItem } from "@bongsik/virtual-list";
 import {
   Dialog,
   DialogContent,
@@ -30,357 +20,35 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Loader2, XIcon } from "lucide-react";
-import { getDailySummary } from "@/lib/summarize";
-
-const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
-  if (!url) return undefined;
-  if (url.startsWith("https://pbs.twimg.com/media/") && !url.includes("?")) {
-    return `${url}?format=jpg&name=large`;
-  }
-  return url;
-};
-
-const formatRelativeTime = (iso: string): string => {
-  const now = Date.now();
-  const then = new Date(iso).getTime();
-  const diff = Math.max(0, Math.floor((now - then) / 1000));
-  if (diff < 60) return `${diff}s`;
-  const m = Math.floor(diff / 60);
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  const d = Math.floor(h / 24);
-  return `${d}d`;
-};
-
-const LEAGUE_TEAMS: Record<string, string[]> = {
-  "Premier League": [
-    "Chelsea",
-    "Tottenham",
-    "Arsenal",
-    "Manchester United",
-    "Manchester City",
-    "Liverpool",
-    "Newcastle",
-    "Brighton",
-    "West Ham",
-    "Aston Villa",
-    "Crystal Palace",
-    "Fulham",
-    "Brentford",
-    "Wolves",
-    "Everton",
-    "Nottingham Forest",
-    "Burnley",
-    "Sheffield United",
-    "Luton",
-    "Bournemouth",
-  ],
-  "La Liga": [
-    "Real Madrid",
-    "Barcelona",
-    "Atletico Madrid",
-    "Sevilla",
-    "Real Sociedad",
-    "Villarreal",
-    "Real Betis",
-    "Valencia",
-    "Athletic Bilbao",
-    "Getafe",
-    "Osasuna",
-    "Rayo Vallecano",
-    "Celta Vigo",
-    "Mallorca",
-    "Las Palmas",
-    "Alaves",
-    "Cadiz",
-    "Granada",
-    "Almeria",
-  ],
-  "Serie A": [
-    "Juventus",
-    "AC Milan",
-    "Inter Milan",
-    "Napoli",
-    "Atalanta",
-    "Roma",
-    "Lazio",
-    "Fiorentina",
-    "Bologna",
-    "Torino",
-    "Monza",
-    "Genoa",
-    "Lecce",
-    "Frosinone",
-    "Udinese",
-    "Sassuolo",
-    "Cagliari",
-    "Verona",
-    "Empoli",
-    "Salernitana",
-  ],
-  Bundesliga: [
-    "Bayern Munich",
-    "Borussia Dortmund",
-    "RB Leipzig",
-    "Bayer Leverkusen",
-    "Eintracht Frankfurt",
-    "Freiburg",
-    "Hoffenheim",
-    "Wolfsburg",
-    "Augsburg",
-    "Werder Bremen",
-    "Bochum",
-    "Union Berlin",
-    "Mainz",
-    "Cologne",
-    "Darmstadt",
-    "Heidenheim",
-    "Gladbach",
-    "Stuttgart",
-  ],
-  "Ligue 1": [
-    "PSG",
-    "Marseille",
-    "Monaco",
-    "Lyon",
-    "Lille",
-    "Nice",
-    "Lens",
-    "Rennes",
-    "Reims",
-    "Toulouse",
-    "Montpellier",
-    "Strasbourg",
-    "Nantes",
-    "Brest",
-    "Le Havre",
-    "Metz",
-    "Lorient",
-    "Clermont",
-  ],
-};
 
 export default function HomePage() {
-  const router = useRouter();
-  const supabase = createClient();
-  const [followedJournalists, setFollowedJournalists] = useState<Set<string>>(
-    new Set()
-  );
   const { theme, setTheme } = useTheme();
   const [activeMenu, setActiveMenu] = useState<
     "home" | "search" | "favorites" | null
   >("home");
-  const [selectedLeague, setSelectedLeague] = useState<string | null>(null);
   const [showLeagueSelector, setShowLeagueSelector] = useState(false);
-  const [tweets, setTweets] = useState<Tweet[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
-  const [hasMore, setHasMore] = useState<boolean>(true);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
-  const [isChatModalOpen, setIsChatModalOpen] = useState<boolean>(false);
-  const [summary, setSummary] = useState<string>("");
-  const [isLoadingSummary, setIsLoadingSummary] = useState<boolean>(false);
-  const [summaryError, setSummaryError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (!session) {
-          router.push("/login");
-          return;
-        }
-      } catch (error) {
-        console.error("Session check error:", error);
-        router.push("/login");
-      } finally {
-        setCheckingAuth(false);
-      }
-    };
-    checkSession();
-  }, [router, supabase]);
-
-  useEffect(() => {
-    if (isChatModalOpen) {
-      const fetchSummary = async () => {
-        try {
-          setIsLoadingSummary(true);
-          setSummaryError(null);
-          setSummary("");
-          const result = await getDailySummary();
-          setSummary(result);
-        } catch (error) {
-          console.error("Summary fetch error:", error);
-          setSummaryError("요약을 가져오는 중 오류가 발생했습니다.");
-        } finally {
-          setIsLoadingSummary(false);
-        }
-      };
-
-      fetchSummary();
-    }
-  }, [isChatModalOpen]);
-
-  useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const tweetsData = await fetchTweets({
-          limit: ITEMS_PER_PAGE,
-        });
-
-        setTweets(tweetsData.items);
-        setNextCursor(tweetsData.pagination.nextCursor);
-        setHasMore(tweetsData.pagination.hasMore);
-
-        setLoading(false);
-
-        const timeoutPromise = new Promise<{ data: null; error: string }>(
-          (resolve) =>
-            setTimeout(() => resolve({ data: null, error: "타임아웃" }), 5000)
-        );
-
-        const followedData = await Promise.race([
-          getFollowedJournalists(),
-          timeoutPromise,
-        ]);
-
-        if (followedData.data) {
-          const handles = new Set(
-            followedData.data.map((f) => f.journalist_handle)
-          );
-          setFollowedJournalists(handles);
-        }
-      } catch (error) {
-        console.error("Load initial data error:", error);
-        setError("피드를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
-        setLoading(false);
-      }
-    };
-
-    if (!checkingAuth) {
-      loadInitialData();
-    }
-  }, [checkingAuth]);
-
-  const fetchMoreTweets = async () => {
-    if (isLoadingMore || !hasMore || !nextCursor) return;
-
-    try {
-      setIsLoadingMore(true);
-
-      const tweetsData = await fetchTweets({
-        limit: ITEMS_PER_PAGE,
-        beforeId: nextCursor,
-      });
-
-      if (tweetsData.items.length > 0) {
-        setTweets((prev) => [...prev, ...tweetsData.items]);
-        setNextCursor(tweetsData.pagination.nextCursor);
-        setHasMore(tweetsData.pagination.hasMore);
-      } else {
-        setHasMore(false);
-      }
-    } catch (error) {
-      console.error("Failed to load more tweets:", error);
-      setError("추가 피드를 불러오지 못했습니다.");
-    } finally {
-      setIsLoadingMore(false);
-    }
-  };
-
-  const { sentinelRef } = useInfiniteScroll({
-    loadMore: fetchMoreTweets,
+  const {
+    checkingAuth,
+    followedJournalists,
+    selectedLeague,
+    setSelectedLeague,
+    tweets,
+    loading,
+    isLoadingMore,
     hasMore,
-    isLoading: isLoadingMore,
-    threshold: 200,
-  });
-
-  const toggleFavorite = async (handle: string, journalistName: string) => {
-    const isFollowing = followedJournalists.has(handle);
-
-    setFollowedJournalists((prev) => {
-      const next = new Set(prev);
-      if (isFollowing) {
-        next.delete(handle);
-      } else {
-        next.add(handle);
-      }
-      return next;
-    });
-
-    const result = isFollowing
-      ? await unfollowJournalist(handle)
-      : await followJournalist(handle, journalistName);
-
-    if (!result.success) {
-      setFollowedJournalists((prev) => {
-        const next = new Set(prev);
-        if (isFollowing) {
-          next.add(handle);
-        } else {
-          next.delete(handle);
-        }
-        return next;
-      });
-      console.error("Toggle follow error:", result.error);
-      setError(`팔로우 실패: ${result.error}`);
-      setTimeout(() => setError(null), 3000);
-    }
-  };
-
-  const filteredTweets = useMemo(() => {
-    if (!selectedLeague) {
-      return tweets;
-    }
-
-    if (selectedLeague === "Others") {
-      const allMajorLeagueTeams: string[] = [];
-      Object.keys(LEAGUE_TEAMS).forEach((league) => {
-        if (league !== "Others") {
-          allMajorLeagueTeams.push(...LEAGUE_TEAMS[league]);
-        }
-      });
-
-      return tweets.filter((tweet) => {
-        const tweetText = tweet.tweet_text.toLowerCase();
-        return !allMajorLeagueTeams.some((team) =>
-          tweetText.includes(team.toLowerCase())
-        );
-      });
-    }
-
-    const teamNames = LEAGUE_TEAMS[selectedLeague] || [];
-    if (teamNames.length === 0) {
-      return tweets;
-    }
-
-    return tweets.filter((tweet) => {
-      const tweetText = tweet.tweet_text.toLowerCase();
-      return teamNames.some((team) => tweetText.includes(team.toLowerCase()));
-    });
-  }, [tweets, selectedLeague]);
-
-  const SPACING = 16;
-  const DEFAULT_ITEM_HEIGHT = 200;
-
-  const { virtualItems, totalHeight } = useVirtualList({
-    itemCount: filteredTweets.length,
-    itemHeight: DEFAULT_ITEM_HEIGHT,
-    itemSpacing: SPACING,
-    measureItemHeight: true,
-    scrollTarget: "window",
-    containerRef: containerRef as React.RefObject<HTMLElement | null>,
-    overscan: 5,
-  });
+    error,
+    containerRef,
+    isChatModalOpen,
+    setIsChatModalOpen,
+    summary,
+    isLoadingSummary,
+    summaryError,
+    toggleFavorite,
+    virtualItems,
+    totalHeight,
+    sentinelRef,
+  } = useHomePage();
 
   if (checkingAuth) {
     return null;
@@ -462,7 +130,7 @@ export default function HomePage() {
                 </div>
               ))}
             {error && <p className="text-destructive text-sm">{error}</p>}
-            {!loading && !error && filteredTweets.length === 0 && (
+            {!loading && !error && tweets.length === 0 && (
               <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
                 <div className="flex flex-col items-center justify-center py-12">
                   <p className="text-muted-foreground text-sm text-center">
@@ -473,7 +141,7 @@ export default function HomePage() {
                 </div>
               </Card>
             )}
-            {!loading && !error && filteredTweets.length > 0 && (
+            {!loading && !error && tweets.length > 0 && (
               <div
                 ref={containerRef}
                 className="scrollbar-hide"
@@ -486,7 +154,7 @@ export default function HomePage() {
                 }}
               >
                 {virtualItems.map((virtualItem: VirtualItem) => {
-                  const t = filteredTweets[virtualItem.index];
+                  const t = tweets[virtualItem.index];
                   if (!t) return null;
 
                   const displayName =
@@ -547,7 +215,7 @@ export default function HomePage() {
                       ))}
                     </div>
                   )}
-                  {!hasMore && !isLoadingMore && filteredTweets.length > 0 && (
+                  {!hasMore && !isLoadingMore && tweets.length > 0 && (
                     <div className="py-4">
                       <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
                         <div className="flex flex-col items-center justify-center py-8">
@@ -586,16 +254,7 @@ export default function HomePage() {
         />
       </button>
 
-      <Dialog
-        open={isChatModalOpen}
-        onOpenChange={(open) => {
-          setIsChatModalOpen(open);
-          if (!open) {
-            setSummary("");
-            setSummaryError(null);
-          }
-        }}
-      >
+      <Dialog open={isChatModalOpen} onOpenChange={setIsChatModalOpen}>
         <DialogContent
           showCloseButton={false}
           className={cn(

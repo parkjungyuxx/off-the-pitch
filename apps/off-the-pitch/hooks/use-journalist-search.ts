@@ -6,14 +6,7 @@ import {
   unfollowJournalist,
   getFollowedJournalists,
 } from "@/lib/follows";
-
-const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
-  if (!url) return undefined;
-  if (url.startsWith("https://pbs.twimg.com/media/") && !url.includes("?")) {
-    return `${url}?format=jpg&name=large`;
-  }
-  return url;
-};
+import { normalizeTwitterMediaUrl } from "@/lib/utils";
 
 export interface Journalist {
   name: string;

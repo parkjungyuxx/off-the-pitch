@@ -21,34 +21,13 @@ import {
   getFollowedJournalists,
 } from "@/lib/follows";
 import { useTheme } from "@/hooks/use-theme";
-import { cn } from "@/lib/utils";
+import { cn, normalizeTwitterMediaUrl, formatRelativeTime } from "@/lib/utils";
 
 interface JournalistPageProps {
   params: Promise<{
     username: string;
   }>;
 }
-
-const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
-  if (!url) return undefined;
-  if (url.startsWith("https://pbs.twimg.com/media/") && !url.includes("?")) {
-    return `${url}?format=jpg&name=large`;
-  }
-  return url;
-};
-
-const formatRelativeTime = (iso: string): string => {
-  const now = Date.now();
-  const then = new Date(iso).getTime();
-  const diff = Math.max(0, Math.floor((now - then) / 1000));
-  if (diff < 60) return `${diff}s`;
-  const m = Math.floor(diff / 60);
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  const d = Math.floor(h / 24);
-  return `${d}d`;
-};
 
 const CredibilityIcon = ({ level }: { level: 1 | 2 | 3 }) => {
   const icons = {
