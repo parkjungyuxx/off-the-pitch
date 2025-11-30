@@ -21,7 +21,6 @@ import { useTheme } from "@/hooks/use-theme";
 import { useInfiniteScroll } from "@bongsik/infinite-scroll";
 import { useVirtualList, type VirtualItem } from "@bongsik/virtual-list";
 
-// 한 번에 로드할 아이템 수
 const ITEMS_PER_PAGE = 20;
 
 const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
@@ -71,7 +70,11 @@ function JournalistAvatarButton({
       title={journalist.name}
     >
       <Image
-        src={avatarError || !journalist.avatar ? FALLBACK_AVATAR : journalist.avatar}
+        src={
+          avatarError || !journalist.avatar
+            ? FALLBACK_AVATAR
+            : journalist.avatar
+        }
         alt={journalist.name}
         width={isSelected ? 56 : 48}
         height={isSelected ? 56 : 48}
@@ -130,15 +133,12 @@ export default function FavoritesPage() {
     checkSession();
   }, [router, supabase]);
 
-
-  // 초기 데이터 로드
   useEffect(() => {
     const loadInitialData = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // 팔로우한 기자 목록 가져오기
         const followedData = await getFollowedJournalists();
         if (!followedData.data || followedData.data.length === 0) {
           setFollowedJournalists(new Set());
@@ -150,13 +150,11 @@ export default function FavoritesPage() {
           return;
         }
 
-        // 팔로우한 기자들의 username 추출 (@ 제거)
         const usernames = followedData.data.map((f) =>
           f.journalist_handle.replace(/^@/, "")
         );
         setJournalistUsernames(usernames);
 
-        // 초기에는 첫 페이지만 로드
         const tweetsData = await fetchTweets({
           limit: ITEMS_PER_PAGE,
           journalists: usernames,
@@ -166,7 +164,6 @@ export default function FavoritesPage() {
         setNextCursor(tweetsData.pagination.nextCursor);
         setHasMore(tweetsData.pagination.hasMore);
 
-        // 기자별 프로필 이미지 추출 (트윗에서 가져오기)
         const journalistMap = new Map<
           string,
           { handle: string; name: string; avatar: string }
@@ -175,7 +172,6 @@ export default function FavoritesPage() {
         followedData.data.forEach((f) => {
           const handle = f.journalist_handle;
           const username = handle.replace(/^@/, "");
-          // 해당 기자의 첫 번째 트윗에서 프로필 이미지 가져오기
           const journalistTweet = tweetsData.items.find(
             (t) => t.author_username === username
           );
@@ -205,9 +201,14 @@ export default function FavoritesPage() {
     }
   }, [checkingAuth]);
 
-  // 추가 데이터 로드 함수
   const fetchMoreTweets = async () => {
-    if (isLoadingMore || !hasMore || !nextCursor || journalistUsernames.length === 0) return;
+    if (
+      isLoadingMore ||
+      !hasMore ||
+      !nextCursor ||
+      journalistUsernames.length === 0
+    )
+      return;
 
     try {
       setIsLoadingMore(true);
@@ -233,15 +234,13 @@ export default function FavoritesPage() {
     }
   };
 
-  // 무한 스크롤 훅 설정
   const { sentinelRef } = useInfiniteScroll({
     loadMore: fetchMoreTweets,
     hasMore,
     isLoading: isLoadingMore,
-    threshold: 200, // 하단 200px 전에 미리 로드
+    threshold: 200,
   });
 
-  // 선택된 기자에 따라 트윗 필터링
   const filteredTweets = useMemo(() => {
     if (!selectedJournalist) {
       return tweets;
@@ -249,15 +248,14 @@ export default function FavoritesPage() {
     return tweets.filter((t) => `@${t.author_username}` === selectedJournalist);
   }, [tweets, selectedJournalist]);
 
-  // 리스트 가상화 훅 설정
-  const SPACING = 16; // mb-4 = 16px
-  const DEFAULT_ITEM_HEIGHT = 200; // 기본 추정값 (간격 제외)
+  const SPACING = 16;
+  const DEFAULT_ITEM_HEIGHT = 200;
 
   const { virtualItems, totalHeight } = useVirtualList({
     itemCount: filteredTweets.length,
-    itemHeight: DEFAULT_ITEM_HEIGHT, // 초기 추정값
-    itemSpacing: SPACING, // 아이템 간 간격
-    measureItemHeight: true, // 자동 높이 측정 활성화
+    itemHeight: DEFAULT_ITEM_HEIGHT,
+    itemSpacing: SPACING,
+    measureItemHeight: true,
     scrollTarget: "window",
     containerRef: containerRef as React.RefObject<HTMLElement | null>,
     overscan: 5,
@@ -266,7 +264,6 @@ export default function FavoritesPage() {
   const toggleFavorite = async (handle: string, journalistName: string) => {
     const isFollowing = followedJournalists.has(handle);
 
-    // 낙관적 업데이트 (UI 먼저 업데이트)
     setFollowedJournalists((prev) => {
       const next = new Set(prev);
       if (isFollowing) {
@@ -277,13 +274,11 @@ export default function FavoritesPage() {
       return next;
     });
 
-    // Supabase에 저장
     const result = isFollowing
       ? await unfollowJournalist(handle)
       : await followJournalist(handle, journalistName);
 
     if (!result.success) {
-      // 실패 시 롤백
       setFollowedJournalists((prev) => {
         const next = new Set(prev);
         if (isFollowing) {
@@ -330,27 +325,26 @@ export default function FavoritesPage() {
                 ref={scrollRef}
                 className="flex items-center gap-3 overflow-x-auto scrollbar-hide"
               >
-                {loading ? (
-                  Array.from({ length: 6 }).map((_, idx) => (
-                    <JournalistAvatarSkeleton key={idx} />
-                  ))
-                ) : (
-                  followedJournalistsList.map((journalist) => {
-                  const isSelected = selectedJournalist === journalist.handle;
-                  return (
-                    <JournalistAvatarButton
-                      key={journalist.handle}
-                      journalist={journalist}
-                      isSelected={isSelected}
-                      onSelect={() =>
-                        setSelectedJournalist(
-                          isSelected ? null : journalist.handle
-                        )
-                      }
-                    />
-                  );
-                  })
-                )}
+                {loading
+                  ? Array.from({ length: 6 }).map((_, idx) => (
+                      <JournalistAvatarSkeleton key={idx} />
+                    ))
+                  : followedJournalistsList.map((journalist) => {
+                      const isSelected =
+                        selectedJournalist === journalist.handle;
+                      return (
+                        <JournalistAvatarButton
+                          key={journalist.handle}
+                          journalist={journalist}
+                          isSelected={isSelected}
+                          onSelect={() =>
+                            setSelectedJournalist(
+                              isSelected ? null : journalist.handle
+                            )
+                          }
+                        />
+                      );
+                    })}
               </div>
             </div>
           )}
@@ -391,7 +385,7 @@ export default function FavoritesPage() {
                 style={{
                   position: "relative",
                   minHeight: totalHeight > 0 ? totalHeight : undefined,
-                  overflow: "hidden", // 스크롤 완전히 방지
+                  overflow: "hidden",
                   msOverflowStyle: "none",
                   scrollbarWidth: "none",
                 }}
@@ -406,7 +400,7 @@ export default function FavoritesPage() {
                   const mapped: FeedPostProps = {
                     journalist: displayName,
                     handle: `@${t.author_username}`,
-                    credibility: 2, // 기본값 (Tier 2)
+                    credibility: 2,
                     content: t.tweet_text,
                     images: (t.images ?? [])
                       .map((u) => normalizeTwitterMediaUrl(u)!)
@@ -443,7 +437,6 @@ export default function FavoritesPage() {
                     </div>
                   );
                 })}
-                {/* 가상화를 위한 높이 확보 spacer */}
                 <div
                   style={{
                     height: totalHeight,
@@ -452,7 +445,6 @@ export default function FavoritesPage() {
                   }}
                   aria-hidden="true"
                 />
-                {/* 무한 스크롤 sentinel 및 로딩 인디케이터 */}
                 <div ref={sentinelRef} className="py-4">
                   {isLoadingMore && (
                     <div className="space-y-4 py-4">

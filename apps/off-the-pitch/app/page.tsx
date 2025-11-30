@@ -20,7 +20,6 @@ import {
 import { useInfiniteScroll } from "@bongsik/infinite-scroll";
 import { useVirtualList, type VirtualItem } from "@bongsik/virtual-list";
 
-// 한 번에 로드할 아이템 수
 const ITEMS_PER_PAGE = 20;
 import { useTheme } from "@/hooks/use-theme";
 import {
@@ -54,7 +53,6 @@ const formatRelativeTime = (iso: string): string => {
   return `${d}d`;
 };
 
-// 리그별 팀 이름 목록
 const LEAGUE_TEAMS: Record<string, string[]> = {
   "Premier League": [
     "Chelsea",
@@ -208,14 +206,13 @@ export default function HomePage() {
     checkSession();
   }, [router, supabase]);
 
-  // 모달 열릴 때 자동으로 요약 요청
   useEffect(() => {
     if (isChatModalOpen) {
       const fetchSummary = async () => {
         try {
           setIsLoadingSummary(true);
           setSummaryError(null);
-          setSummary(""); // 이전 요약 초기화
+          setSummary("");
           const result = await getDailySummary();
           setSummary(result);
         } catch (error) {
@@ -230,14 +227,12 @@ export default function HomePage() {
     }
   }, [isChatModalOpen]);
 
-  // 초기 데이터 로드
   useEffect(() => {
     const loadInitialData = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // 초기에는 첫 페이지만 로드
         const tweetsData = await fetchTweets({
           limit: ITEMS_PER_PAGE,
         });
@@ -246,11 +241,8 @@ export default function HomePage() {
         setNextCursor(tweetsData.pagination.nextCursor);
         setHasMore(tweetsData.pagination.hasMore);
 
-        // 로딩 상태를 먼저 false로 설정하여 데이터를 즉시 표시
         setLoading(false);
 
-        // 팔로우한 기자 목록은 백그라운드에서 로드
-        // 타임아웃을 추가하여 너무 오래 걸리지 않도록 함
         const timeoutPromise = new Promise<{ data: null; error: string }>(
           (resolve) =>
             setTimeout(() => resolve({ data: null, error: "타임아웃" }), 5000)
@@ -279,7 +271,6 @@ export default function HomePage() {
     }
   }, [checkingAuth]);
 
-  // 추가 데이터 로드 함수
   const fetchMoreTweets = async () => {
     if (isLoadingMore || !hasMore || !nextCursor) return;
 
@@ -288,7 +279,7 @@ export default function HomePage() {
 
       const tweetsData = await fetchTweets({
         limit: ITEMS_PER_PAGE,
-        beforeId: nextCursor, // 더 오래된 데이터를 가져오기 위해 beforeId 사용
+        beforeId: nextCursor,
       });
 
       if (tweetsData.items.length > 0) {
@@ -306,18 +297,16 @@ export default function HomePage() {
     }
   };
 
-  // 무한 스크롤 훅 설정
   const { sentinelRef } = useInfiniteScroll({
     loadMore: fetchMoreTweets,
     hasMore,
     isLoading: isLoadingMore,
-    threshold: 200, // 하단 200px 전에 미리 로드
+    threshold: 200,
   });
 
   const toggleFavorite = async (handle: string, journalistName: string) => {
     const isFollowing = followedJournalists.has(handle);
 
-    // 낙관적 업데이트 (UI 먼저 업데이트)
     setFollowedJournalists((prev) => {
       const next = new Set(prev);
       if (isFollowing) {
@@ -328,13 +317,11 @@ export default function HomePage() {
       return next;
     });
 
-    // Supabase에 저장
     const result = isFollowing
       ? await unfollowJournalist(handle)
       : await followJournalist(handle, journalistName);
 
     if (!result.success) {
-      // 실패 시 롤백
       setFollowedJournalists((prev) => {
         const next = new Set(prev);
         if (isFollowing) {
@@ -346,21 +333,16 @@ export default function HomePage() {
       });
       console.error("Toggle follow error:", result.error);
       setError(`팔로우 실패: ${result.error}`);
-      // 에러 메시지 3초 후 자동 제거
       setTimeout(() => setError(null), 3000);
     }
   };
 
-  // 리그 선택에 따라 트윗 필터링
   const filteredTweets = useMemo(() => {
     if (!selectedLeague) {
-      // 리그가 선택되지 않았으면 모든 트윗 반환
       return tweets;
     }
 
-    // Others를 선택한 경우: 다른 모든 주요 리그 팀들을 제외
     if (selectedLeague === "Others") {
-      // 모든 주요 리그의 팀 이름 수집
       const allMajorLeagueTeams: string[] = [];
       Object.keys(LEAGUE_TEAMS).forEach((league) => {
         if (league !== "Others") {
@@ -368,7 +350,6 @@ export default function HomePage() {
         }
       });
 
-      // 주요 리그 팀 이름이 포함되지 않은 트윗만 반환
       return tweets.filter((tweet) => {
         const tweetText = tweet.tweet_text.toLowerCase();
         return !allMajorLeagueTeams.some((team) =>
@@ -377,7 +358,6 @@ export default function HomePage() {
       });
     }
 
-    // 특정 리그를 선택한 경우: 해당 리그의 팀 이름이 포함된 트윗만 필터링
     const teamNames = LEAGUE_TEAMS[selectedLeague] || [];
     if (teamNames.length === 0) {
       return tweets;
@@ -389,15 +369,14 @@ export default function HomePage() {
     });
   }, [tweets, selectedLeague]);
 
-  // 리스트 가상화 훅 설정
-  const SPACING = 16; // mb-4 = 16px
-  const DEFAULT_ITEM_HEIGHT = 200; // 기본 추정값 (간격 제외)
+  const SPACING = 16;
+  const DEFAULT_ITEM_HEIGHT = 200;
 
   const { virtualItems, totalHeight } = useVirtualList({
     itemCount: filteredTweets.length,
-    itemHeight: DEFAULT_ITEM_HEIGHT, // 초기 추정값
-    itemSpacing: SPACING, // 아이템 간 간격
-    measureItemHeight: true, // 자동 높이 측정 활성화
+    itemHeight: DEFAULT_ITEM_HEIGHT,
+    itemSpacing: SPACING,
+    measureItemHeight: true,
     scrollTarget: "window",
     containerRef: containerRef as React.RefObject<HTMLElement | null>,
     overscan: 5,
@@ -501,7 +480,7 @@ export default function HomePage() {
                 style={{
                   position: "relative",
                   minHeight: totalHeight > 0 ? totalHeight : undefined,
-                  overflow: "hidden", // 스크롤 완전히 방지
+                  overflow: "hidden",
                   msOverflowStyle: "none",
                   scrollbarWidth: "none",
                 }}
@@ -516,7 +495,7 @@ export default function HomePage() {
                   const mapped: FeedPostProps = {
                     journalist: displayName,
                     handle: `@${t.author_username}`,
-                    credibility: 2, // 기본값 (Tier 2)
+                    credibility: 2,
                     content: t.tweet_text,
                     images: (t.images ?? [])
                       .map((u) => normalizeTwitterMediaUrl(u)!)
@@ -552,7 +531,6 @@ export default function HomePage() {
                     </div>
                   );
                 })}
-                {/* 가상화를 위한 높이 확보 spacer */}
                 <div
                   style={{
                     height: totalHeight,
@@ -561,7 +539,6 @@ export default function HomePage() {
                   }}
                   aria-hidden="true"
                 />
-                {/* 무한 스크롤 sentinel 및 로딩 인디케이터 */}
                 <div ref={sentinelRef} className="py-4">
                   {isLoadingMore && (
                     <div className="space-y-4 py-4">
@@ -588,7 +565,6 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* AI 챗봇 플로팅 버튼 */}
       <button
         className={cn(
           "fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg",
@@ -610,13 +586,11 @@ export default function HomePage() {
         />
       </button>
 
-      {/* AI 챗봇 모달 */}
       <Dialog
         open={isChatModalOpen}
         onOpenChange={(open) => {
           setIsChatModalOpen(open);
           if (!open) {
-            // 모달 닫을 때 상태 초기화
             setSummary("");
             setSummaryError(null);
           }
@@ -631,7 +605,6 @@ export default function HomePage() {
               : "bg-[#141414] border-[rgb(57,57,57)]"
           )}
         >
-          {/* 채팅 헤더 */}
           <DialogHeader className="px-6 py-4 border-b border-border dark:border-[rgb(57,57,57)] relative">
             <div className="flex items-center gap-3">
               <Image
@@ -645,7 +618,6 @@ export default function HomePage() {
                 오늘의 이적시장 요약
               </DialogTitle>
             </div>
-            {/* 커스텀 닫기 버튼 (주황색 보더 없음) */}
             <DialogClose
               className={cn(
                 "absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100",
@@ -658,9 +630,7 @@ export default function HomePage() {
             </DialogClose>
           </DialogHeader>
 
-          {/* 채팅 메시지 영역 */}
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-            {/* 요약 메시지 */}
             {isLoadingSummary ? (
               <div className="flex gap-3">
                 <div className="shrink-0">

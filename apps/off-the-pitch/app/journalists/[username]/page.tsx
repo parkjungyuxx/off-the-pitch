@@ -104,7 +104,6 @@ export default function JournalistPage({ params }: JournalistPageProps) {
         setLoading(true);
         setError(null);
 
-        // 프로필 정보, 트윗 목록, 팔로우 상태를 병렬로 가져오기
         const [profileData, tweetsData, followedData] = await Promise.all([
           fetchJournalistProfile(username),
           fetchTweets({
@@ -116,7 +115,6 @@ export default function JournalistPage({ params }: JournalistPageProps) {
 
         setTweets(tweetsData.items);
 
-        // 팔로우 상태 확인
         if (followedData.data) {
           const handle = `@${username}`;
           setIsFollowing(
@@ -124,11 +122,9 @@ export default function JournalistPage({ params }: JournalistPageProps) {
           );
         }
 
-        // 프로필 정보가 없어도 트윗 데이터가 있으면 프로필 생성
         if (profileData) {
           setProfile(profileData);
         } else if (tweetsData.items.length > 0) {
-          // 트윗 데이터에서 프로필 정보 추출
           const firstTweet = tweetsData.items[0];
           const displayName =
             (firstTweet.author_name?.split("@")[0]?.trim() as string) ||
@@ -140,7 +136,7 @@ export default function JournalistPage({ params }: JournalistPageProps) {
             name: displayName,
             profileImage: firstTweet.author_profile_image || null,
             credibility: (Math.floor(Math.random() * 3) + 1) as 1 | 2 | 3,
-            tweetCount: tweetsData.items.length, // 임시로 현재 로드된 수 사용
+            tweetCount: tweetsData.items.length,
           });
         } else {
           setError("기자 정보를 찾을 수 없습니다.");
@@ -155,12 +151,10 @@ export default function JournalistPage({ params }: JournalistPageProps) {
     run();
   }, [username]);
 
-  // 프로필이 변경될 때 avatarError 리셋
   useEffect(() => {
     setAvatarError(false);
   }, [profile?.profileImage, username]);
 
-  // 프로필 정보가 없을 때 기본값
   const displayProfile = useMemo(() => {
     if (!profile) {
       return {
@@ -198,17 +192,14 @@ export default function JournalistPage({ params }: JournalistPageProps) {
   const toggleFavorite = async () => {
     if (!profile) return;
 
-    // 낙관적 업데이트 (UI 먼저 업데이트)
     setIsFollowing((prev) => !prev);
 
-    // Supabase에 저장
     const handle = `@${username}`;
     const result = isFollowing
       ? await unfollowJournalist(handle)
       : await followJournalist(handle, profile.name);
 
     if (!result.success) {
-      // 실패 시 롤백
       setIsFollowing((prev) => !prev);
       console.error("Toggle follow error:", result.error);
       setError(`팔로우 실패: ${result.error}`);

@@ -8,9 +8,6 @@ export interface FollowedJournalist {
   created_at: string;
 }
 
-/**
- * 기자를 팔로우합니다
- */
 export async function followJournalist(
   journalistHandle: string,
   journalistName: string
@@ -27,7 +24,6 @@ export async function followJournalist(
       return { success: false, error: "로그인이 필요합니다." };
     }
 
-    // 이미 팔로우 중인지 확인
     const { data: existing } = await supabase
       .from("user_follows")
       .select("id")
@@ -39,7 +35,6 @@ export async function followJournalist(
       return { success: false, error: "이미 팔로우 중입니다." };
     }
 
-    // 팔로우 추가
     const { data, error } = await supabase
       .from("user_follows")
       .insert({
@@ -73,16 +68,12 @@ export async function followJournalist(
   }
 }
 
-/**
- * 기자 팔로우를 취소합니다
- */
 export async function unfollowJournalist(
   journalistHandle: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = createClient();
     
-    // 현재 사용자 세션 확인
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -91,7 +82,6 @@ export async function unfollowJournalist(
       return { success: false, error: "로그인이 필요합니다." };
     }
 
-    // 팔로우 삭제
     const { error } = await supabase
       .from("user_follows")
       .delete()
@@ -113,9 +103,6 @@ export async function unfollowJournalist(
   }
 }
 
-/**
- * 현재 사용자가 팔로우한 기자 목록을 가져옵니다
- */
 export async function getFollowedJournalists(): Promise<{
   data: FollowedJournalist[] | null;
   error: string | null;
@@ -123,7 +110,6 @@ export async function getFollowedJournalists(): Promise<{
   try {
     const supabase = createClient();
     
-    // 현재 사용자 세션 확인
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -153,16 +139,12 @@ export async function getFollowedJournalists(): Promise<{
   }
 }
 
-/**
- * 특정 기자를 팔로우 중인지 확인합니다
- */
 export async function isFollowingJournalist(
   journalistHandle: string
 ): Promise<boolean> {
   try {
     const supabase = createClient();
     
-    // 현재 사용자 세션 확인
     const {
       data: { session },
     } = await supabase.auth.getSession();

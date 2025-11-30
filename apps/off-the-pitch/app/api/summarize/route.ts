@@ -7,7 +7,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// 서버 사이드에서 사용할 번역 함수
 async function translateTextServerSide(text: string): Promise<string> {
   const systemPrompt = getTranslationPrompt({ targetLanguage: "ko" });
 
@@ -39,7 +38,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 어제 00:00부터 오늘 23:59까지의 트윗 가져오기
     const now = new Date();
     const todayStart = new Date(
       now.getFullYear(),
@@ -52,7 +50,6 @@ export async function GET(request: NextRequest) {
     const since = yesterdayStart.toISOString();
     const until = now.toISOString();
 
-    // Supabase에서 어제~오늘 트윗 가져오기
     const supabase = getSupabaseClient();
     const { data: tweets, error: tweetsError } = await supabase
       .from("tweets")
@@ -60,7 +57,7 @@ export async function GET(request: NextRequest) {
       .gte("created_at", since)
       .lte("created_at", until)
       .order("created_at", { ascending: false })
-      .limit(50); // 최근 50개 트윗
+      .limit(50);
 
     if (tweetsError) {
       console.error("Error fetching tweets:", tweetsError);
@@ -77,28 +74,23 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 트윗 텍스트 번역 (한글이 아닌 경우)
     const translatedTweets = await Promise.all(
       tweets.map(async (tweet) => {
         try {
-          // 이미 한글인지 간단히 체크 (더 정교한 체크는 필요시 추가)
           const isKorean = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(tweet.tweet_text);
           if (isKorean) {
             return tweet.tweet_text;
           }
-          // 영어나 다른 언어면 번역
           return await translateTextServerSide(tweet.tweet_text);
         } catch (error) {
           console.error("Translation error:", error);
-          return tweet.tweet_text; // 번역 실패 시 원문 반환
+          return tweet.tweet_text;
         }
       })
     );
 
-    // 요약 프롬프트 생성
     const systemPrompt = getSummaryPrompt(translatedTweets);
 
-    // OpenAI로 요약 생성
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
