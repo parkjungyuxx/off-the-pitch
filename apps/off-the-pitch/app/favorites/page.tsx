@@ -1,277 +1,44 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
+import { useState } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { FeedPost, type FeedPostProps } from "@/components/feed-post";
 import { FeedPostSkeleton } from "@/components/feed-post-skeleton";
 import { JournalistAvatarSkeleton } from "@/components/journalist-avatar-skeleton";
+import { JournalistAvatarButton } from "@/components/favorites/journalist-avatar-button";
 import { Card } from "@/components/ui/card";
-import { createClient } from "@/lib/supabase-client";
-import { cn } from "@/lib/utils";
-import { useDragScroll } from "@/hooks/use-drag-scroll";
-import {
-  followJournalist,
-  unfollowJournalist,
-  getFollowedJournalists,
-} from "@/lib/follows";
-import { fetchTweets, type Tweet } from "@/lib/tweets";
 import { useTheme } from "@/hooks/use-theme";
-import { useInfiniteScroll } from "@bongsik/infinite-scroll";
-import { useVirtualList, type VirtualItem } from "@bongsik/virtual-list";
+import { useFavorites } from "@/hooks/use-favorites";
+import { useDragScroll } from "@/hooks/use-drag-scroll";
 import { normalizeTwitterMediaUrl, formatRelativeTime } from "@/lib/utils";
-import { ITEMS_PER_PAGE } from "@/lib/constants";
-
-function JournalistAvatarButton({
-  journalist,
-  isSelected,
-  onSelect,
-}: {
-  journalist: { handle: string; name: string; avatar: string };
-  isSelected: boolean;
-  onSelect: () => void;
-}) {
-  const [avatarError, setAvatarError] = useState<boolean>(false);
-  const FALLBACK_AVATAR = "/placeholder-user.jpg";
-
-  return (
-    <button
-      key={journalist.handle}
-      onClick={onSelect}
-      onDragStart={(e) => e.preventDefault()}
-      className={cn(
-        "shrink-0 rounded-full border-2 transition-all overflow-hidden select-none",
-        isSelected
-          ? "border-primary size-14"
-          : "border-border size-12 hover:border-white/20"
-      )}
-      title={journalist.name}
-    >
-      <Image
-        src={
-          avatarError || !journalist.avatar
-            ? FALLBACK_AVATAR
-            : journalist.avatar
-        }
-        alt={journalist.name}
-        width={isSelected ? 56 : 48}
-        height={isSelected ? 56 : 48}
-        className="w-full h-full object-cover pointer-events-none"
-        draggable={false}
-        onError={() => setAvatarError(true)}
-      />
-    </button>
-  );
-}
+import type { VirtualItem } from "@bongsik/virtual-list";
 
 export default function FavoritesPage() {
-  const router = useRouter();
-  const supabase = createClient();
-  const [followedJournalists, setFollowedJournalists] = useState<Set<string>>(
-    new Set()
-  );
-  const [followedJournalistsList, setFollowedJournalistsList] = useState<
-    Array<{ handle: string; name: string; avatar: string }>
-  >([]);
-  const [selectedJournalist, setSelectedJournalist] = useState<string | null>(
-    null
-  );
   const { theme, setTheme } = useTheme();
   const [activeMenu, setActiveMenu] = useState<
     "home" | "search" | "favorites" | null
   >("favorites");
-  const [tweets, setTweets] = useState<Tweet[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
-  const [hasMore, setHasMore] = useState<boolean>(true);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
-  const scrollRef = useDragScroll<HTMLDivElement>();
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [journalistUsernames, setJournalistUsernames] = useState<string[]>([]);
 
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (!session) {
-          router.push("/login");
-          return;
-        }
-      } catch (error) {
-        console.error("Session check error:", error);
-        router.push("/login");
-      } finally {
-        setCheckingAuth(false);
-      }
-    };
-    checkSession();
-  }, [router, supabase]);
-
-  useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const followedData = await getFollowedJournalists();
-        if (!followedData.data || followedData.data.length === 0) {
-          setFollowedJournalists(new Set());
-          setTweets([]);
-          setFollowedJournalistsList([]);
-          setHasMore(false);
-          setNextCursor(null);
-          setLoading(false);
-          return;
-        }
-
-        const usernames = followedData.data.map((f) =>
-          f.journalist_handle.replace(/^@/, "")
-        );
-        setJournalistUsernames(usernames);
-
-        const tweetsData = await fetchTweets({
-          limit: ITEMS_PER_PAGE,
-          journalists: usernames,
-        });
-
-        setTweets(tweetsData.items);
-        setNextCursor(tweetsData.pagination.nextCursor);
-        setHasMore(tweetsData.pagination.hasMore);
-
-        const journalistMap = new Map<
-          string,
-          { handle: string; name: string; avatar: string }
-        >();
-
-        followedData.data.forEach((f) => {
-          const handle = f.journalist_handle;
-          const username = handle.replace(/^@/, "");
-          const journalistTweet = tweetsData.items.find(
-            (t) => t.author_username === username
-          );
-          journalistMap.set(handle, {
-            handle,
-            name: f.journalist_name,
-            avatar:
-              normalizeTwitterMediaUrl(journalistTweet?.author_profile_image) ||
-              "/placeholder-user.jpg",
-          });
-        });
-
-        setFollowedJournalistsList(Array.from(journalistMap.values()));
-        setFollowedJournalists(
-          new Set(followedData.data.map((f) => f.journalist_handle))
-        );
-      } catch (err) {
-        console.error("Load initial data error:", err);
-        setError("피드를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (!checkingAuth) {
-      loadInitialData();
-    }
-  }, [checkingAuth]);
-
-  const fetchMoreTweets = async () => {
-    if (
-      isLoadingMore ||
-      !hasMore ||
-      !nextCursor ||
-      journalistUsernames.length === 0
-    )
-      return;
-
-    try {
-      setIsLoadingMore(true);
-
-      const tweetsData = await fetchTweets({
-        limit: ITEMS_PER_PAGE,
-        journalists: journalistUsernames,
-        afterId: nextCursor,
-      });
-
-      if (tweetsData.items.length > 0) {
-        setTweets((prev) => [...prev, ...tweetsData.items]);
-        setNextCursor(tweetsData.pagination.nextCursor);
-        setHasMore(tweetsData.pagination.hasMore);
-      } else {
-        setHasMore(false);
-      }
-    } catch (error) {
-      console.error("Failed to load more tweets:", error);
-      setError("추가 피드를 불러오지 못했습니다.");
-    } finally {
-      setIsLoadingMore(false);
-    }
-  };
-
-  const { sentinelRef } = useInfiniteScroll({
-    loadMore: fetchMoreTweets,
+  const {
+    followedJournalists,
+    followedJournalistsList,
+    selectedJournalist,
+    tweets,
+    filteredTweets,
+    loading,
+    isLoadingMore,
     hasMore,
-    isLoading: isLoadingMore,
-    threshold: 200,
-  });
+    error,
+    checkingAuth,
+    virtualItems,
+    totalHeight,
+    setSelectedJournalist,
+    toggleFavorite,
+    sentinelRef,
+    containerRef,
+  } = useFavorites();
 
-  const filteredTweets = useMemo(() => {
-    if (!selectedJournalist) {
-      return tweets;
-    }
-    return tweets.filter((t) => `@${t.author_username}` === selectedJournalist);
-  }, [tweets, selectedJournalist]);
-
-  const SPACING = 16;
-  const DEFAULT_ITEM_HEIGHT = 200;
-
-  const { virtualItems, totalHeight } = useVirtualList({
-    itemCount: filteredTweets.length,
-    itemHeight: DEFAULT_ITEM_HEIGHT,
-    itemSpacing: SPACING,
-    measureItemHeight: true,
-    scrollTarget: "window",
-    containerRef: containerRef as React.RefObject<HTMLElement | null>,
-    overscan: 5,
-  });
-
-  const toggleFavorite = async (handle: string, journalistName: string) => {
-    const isFollowing = followedJournalists.has(handle);
-
-    setFollowedJournalists((prev) => {
-      const next = new Set(prev);
-      if (isFollowing) {
-        next.delete(handle);
-      } else {
-        next.add(handle);
-      }
-      return next;
-    });
-
-    const result = isFollowing
-      ? await unfollowJournalist(handle)
-      : await followJournalist(handle, journalistName);
-
-    if (!result.success) {
-      setFollowedJournalists((prev) => {
-        const next = new Set(prev);
-        if (isFollowing) {
-          next.add(handle);
-        } else {
-          next.delete(handle);
-        }
-        return next;
-      });
-      console.error("Toggle follow error:", result.error);
-      setError(`팔로우 실패: ${result.error}`);
-      setTimeout(() => setError(null), 3000);
-    }
-  };
+  const scrollRef = useDragScroll<HTMLDivElement>();
 
   if (checkingAuth) {
     return null;
@@ -393,7 +160,6 @@ export default function FavoritesPage() {
                   const id = t.tweet_id;
                   const handle = `@${t.author_username}`;
                   const isFollowing = followedJournalists.has(handle);
-                  const isFirstItem = virtualItem.index === 0;
 
                   return (
                     <div
