@@ -1,100 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { Search } from "lucide-react";
-import Image from "next/image";
 
 import { Sidebar } from "@/components/sidebar";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { JournalistSkeletonList } from "@/components/search/journalist-skeleton-list";
+import { JournalistItem } from "@/components/search/journalist-item";
 import { useJournalistSearch } from "@/hooks/use-journalist-search";
 import { useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
-
-function CredibilityIcon({ level }: { level: 1 | 2 | 3 }) {
-  const icons = {
-    1: "🌕", // Tier 1 - 보름달 (제일 공신력 높음)
-    2: "🌓", // Tier 2 - 반달
-    3: "🌒", // Tier 3 - 초승달 (제일 공신력 낮음)
-  };
-
-  return (
-    <span className="text-lg leading-none" title={`Tier ${level}`}>
-      {icons[level]}
-    </span>
-  );
-}
-
-function JournalistItem({
-  journalist,
-  isFavorited,
-  onToggleFavorite,
-  theme,
-}: {
-  journalist: { username: string; name: string; profileImage?: string; credibility: 1 | 2 | 3 };
-  isFavorited: boolean;
-  onToggleFavorite: () => void;
-  theme: "light" | "dark";
-}) {
-  const [avatarError, setAvatarError] = useState<boolean>(false);
-  const FALLBACK_AVATAR = "/placeholder-user.jpg";
-
-  return (
-    <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-secondary/30 transition-all">
-      <Link
-        href={`/journalists/${journalist.username}`}
-        className="flex items-center gap-4 flex-1 min-w-0"
-      >
-        <div className="shrink-0">
-          <Image
-            src={avatarError || !journalist.profileImage ? FALLBACK_AVATAR : journalist.profileImage}
-            alt={journalist.name}
-            width={56}
-            height={56}
-            className="rounded-full"
-            onError={() => setAvatarError(true)}
-          />
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-semibold text-card-foreground">
-              {journalist.name}
-            </span>
-            <CredibilityIcon level={journalist.credibility} />
-          </div>
-          <p className="text-muted-foreground text-sm">
-            @{journalist.username}
-          </p>
-        </div>
-      </Link>
-
-      <Button
-        onClick={(e) => {
-          e.preventDefault();
-          onToggleFavorite();
-        }}
-        size="sm"
-        variant={isFavorited ? "secondary" : "outline"}
-        className={cn(
-          "rounded-full px-4 h-8 text-xs font-medium transition-all border shrink-0",
-          theme === "light"
-            ? isFavorited
-              ? "bg-white text-black border-gray-300 hover:bg-white"
-              : "bg-black text-white border-black hover:bg-black/90"
-            : isFavorited
-              ? "bg-[rgb(24,24,24)] text-white border-[rgb(57,57,57)] hover:bg-[rgb(24,24,24)]"
-              : "bg-white text-black border-[rgb(57,57,57)] hover:bg-white/90"
-        )}
-      >
-        {isFavorited ? "팔로잉" : "팔로우"}
-      </Button>
-    </div>
-  );
-}
 
 export default function SearchPage() {
   const { theme, setTheme } = useTheme();
@@ -112,7 +28,6 @@ export default function SearchPage() {
     toggleFavorite,
   } = useJournalistSearch();
 
-
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar
@@ -120,7 +35,6 @@ export default function SearchPage() {
         onMenuClick={(menu) => {
           setActiveMenu(menu);
         }}
-        selectedLeague={null}
         theme={theme}
         onThemeChange={setTheme}
       />
@@ -139,9 +53,7 @@ export default function SearchPage() {
             <Card
               className={cn(
                 "p-6 rounded-2xl border bg-card",
-                theme === "light"
-                  ? "border-gray-300"
-                  : "border-[rgb(57,57,57)]"
+                theme === "light" ? "border-gray-300" : "border-[rgb(57,57,57)]"
               )}
             >
               <div className="relative mb-6">
