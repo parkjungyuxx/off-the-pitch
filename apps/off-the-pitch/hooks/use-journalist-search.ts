@@ -6,7 +6,7 @@ import {
   unfollowJournalist,
   getFollowedJournalists,
 } from "@/lib/follows";
-import { normalizeTwitterMediaUrl } from "@/lib/utils";
+import { normalizeTwitterMediaUrl, getJournalistCredibility } from "@/lib/utils";
 
 export interface Journalist {
   name: string;
@@ -71,7 +71,7 @@ export const useJournalistSearch = () => {
             username,
             profileImage:
               normalizeTwitterMediaUrl(tweet.author_profile_image) || null,
-            credibility: (Math.floor(Math.random() * 3) + 1) as 1 | 2 | 3,
+            credibility: getJournalistCredibility(username),
           });
         });
 
