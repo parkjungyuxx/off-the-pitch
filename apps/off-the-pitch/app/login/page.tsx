@@ -1,71 +1,14 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FcGoogle } from "react-icons/fc";
-import { createClient } from "@/lib/supabase-client";
+import { useLogin } from "@/hooks/use-login";
 
 function LoginContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const errorParam = searchParams.get("error");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(() => {
-    if (!errorParam) return null;
-    return decodeURIComponent(errorParam);
-  });
-  const supabase = createClient();
-
-  useEffect(() => {
-    const checkSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session) {
-        router.push("/");
-      }
-    };
-    checkSession();
-
-    if (errorParam) {
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.delete("error");
-      window.history.replaceState({}, "", newUrl.toString());
-    }
-  }, [router, supabase, errorParam]);
-
-  const handleSocialLogin = async (provider: "google" | "kakao") => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (error) {
-        let errorMessage = "로그인에 실패했습니다. 잠시 후 다시 시도해주세요.";
-        if (
-          error.message.includes("network") ||
-          error.message.includes("timeout")
-        ) {
-          errorMessage =
-            "네트워크 오류가 발생했습니다. 연결을 확인하고 다시 시도해주세요.";
-        }
-        setError(errorMessage);
-        setLoading(false);
-      }
-    } catch {
-      setError("로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
-      setLoading(false);
-    }
-  };
+  const { loading, error, handleSocialLogin } = useLogin();
 
   return (
     <div className="flex min-h-screen bg-background items-center justify-center p-4">

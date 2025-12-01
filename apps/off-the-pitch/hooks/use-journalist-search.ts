@@ -6,14 +6,7 @@ import {
   unfollowJournalist,
   getFollowedJournalists,
 } from "@/lib/follows";
-
-const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
-  if (!url) return undefined;
-  if (url.startsWith("https://pbs.twimg.com/media/") && !url.includes("?")) {
-    return `${url}?format=jpg&name=large`;
-  }
-  return url;
-};
+import { normalizeTwitterMediaUrl } from "@/lib/utils";
 
 export interface Journalist {
   name: string;
@@ -111,7 +104,6 @@ export const useJournalistSearch = () => {
     const handle = `@${username}`;
     const isFollowing = favorites.has(username);
 
-    // 낙관적 업데이트 (UI 먼저 업데이트)
     setFavorites((prev) => {
       const next = new Set(prev);
       if (isFollowing) {
@@ -122,13 +114,11 @@ export const useJournalistSearch = () => {
       return next;
     });
 
-    // Supabase에 저장
     const result = isFollowing
       ? await unfollowJournalist(handle)
       : await followJournalist(handle, journalistName);
 
     if (!result.success) {
-      // 실패 시 롤백
       setFavorites((prev) => {
         const next = new Set(prev);
         if (isFollowing) {

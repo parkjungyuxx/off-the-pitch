@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Image from "next/image";
 import { IoIosArrowDown } from "react-icons/io";
 import { Sidebar } from "@/components/sidebar";
@@ -9,20 +8,10 @@ import { FeedPost, type FeedPostProps } from "@/components/feed-post";
 import { FeedPostSkeleton } from "@/components/feed-post-skeleton";
 import { Card } from "@/components/ui/card";
 import { LeagueSelector } from "@/components/league-selector";
-import { cn } from "@/lib/utils";
-import { fetchTweets, type Tweet } from "@/lib/tweets";
-import { createClient } from "@/lib/supabase-client";
-import {
-  followJournalist,
-  unfollowJournalist,
-  getFollowedJournalists,
-} from "@/lib/follows";
-import { useInfiniteScroll } from "@bongsik/infinite-scroll";
-import { useVirtualList, type VirtualItem } from "@bongsik/virtual-list";
-
-// 한 번에 로드할 아이템 수
-const ITEMS_PER_PAGE = 20;
+import { cn, normalizeTwitterMediaUrl, formatRelativeTime } from "@/lib/utils";
 import { useTheme } from "@/hooks/use-theme";
+import { useHomePage } from "@/hooks/use-home-page";
+import { useVirtualList, type VirtualItem } from "@bongsik/virtual-list";
 import {
   Dialog,
   DialogContent,
@@ -31,377 +20,35 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Loader2, XIcon } from "lucide-react";
-import { getDailySummary } from "@/lib/summarize";
-
-const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
-  if (!url) return undefined;
-  if (url.startsWith("https://pbs.twimg.com/media/") && !url.includes("?")) {
-    return `${url}?format=jpg&name=large`;
-  }
-  return url;
-};
-
-const formatRelativeTime = (iso: string): string => {
-  const now = Date.now();
-  const then = new Date(iso).getTime();
-  const diff = Math.max(0, Math.floor((now - then) / 1000));
-  if (diff < 60) return `${diff}s`;
-  const m = Math.floor(diff / 60);
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  const d = Math.floor(h / 24);
-  return `${d}d`;
-};
-
-// 리그별 팀 이름 목록
-const LEAGUE_TEAMS: Record<string, string[]> = {
-  "Premier League": [
-    "Chelsea",
-    "Tottenham",
-    "Arsenal",
-    "Manchester United",
-    "Manchester City",
-    "Liverpool",
-    "Newcastle",
-    "Brighton",
-    "West Ham",
-    "Aston Villa",
-    "Crystal Palace",
-    "Fulham",
-    "Brentford",
-    "Wolves",
-    "Everton",
-    "Nottingham Forest",
-    "Burnley",
-    "Sheffield United",
-    "Luton",
-    "Bournemouth",
-  ],
-  "La Liga": [
-    "Real Madrid",
-    "Barcelona",
-    "Atletico Madrid",
-    "Sevilla",
-    "Real Sociedad",
-    "Villarreal",
-    "Real Betis",
-    "Valencia",
-    "Athletic Bilbao",
-    "Getafe",
-    "Osasuna",
-    "Rayo Vallecano",
-    "Celta Vigo",
-    "Mallorca",
-    "Las Palmas",
-    "Alaves",
-    "Cadiz",
-    "Granada",
-    "Almeria",
-  ],
-  "Serie A": [
-    "Juventus",
-    "AC Milan",
-    "Inter Milan",
-    "Napoli",
-    "Atalanta",
-    "Roma",
-    "Lazio",
-    "Fiorentina",
-    "Bologna",
-    "Torino",
-    "Monza",
-    "Genoa",
-    "Lecce",
-    "Frosinone",
-    "Udinese",
-    "Sassuolo",
-    "Cagliari",
-    "Verona",
-    "Empoli",
-    "Salernitana",
-  ],
-  Bundesliga: [
-    "Bayern Munich",
-    "Borussia Dortmund",
-    "RB Leipzig",
-    "Bayer Leverkusen",
-    "Eintracht Frankfurt",
-    "Freiburg",
-    "Hoffenheim",
-    "Wolfsburg",
-    "Augsburg",
-    "Werder Bremen",
-    "Bochum",
-    "Union Berlin",
-    "Mainz",
-    "Cologne",
-    "Darmstadt",
-    "Heidenheim",
-    "Gladbach",
-    "Stuttgart",
-  ],
-  "Ligue 1": [
-    "PSG",
-    "Marseille",
-    "Monaco",
-    "Lyon",
-    "Lille",
-    "Nice",
-    "Lens",
-    "Rennes",
-    "Reims",
-    "Toulouse",
-    "Montpellier",
-    "Strasbourg",
-    "Nantes",
-    "Brest",
-    "Le Havre",
-    "Metz",
-    "Lorient",
-    "Clermont",
-  ],
-};
 
 export default function HomePage() {
-  const router = useRouter();
-  const supabase = createClient();
-  const [followedJournalists, setFollowedJournalists] = useState<Set<string>>(
-    new Set()
-  );
   const { theme, setTheme } = useTheme();
   const [activeMenu, setActiveMenu] = useState<
     "home" | "search" | "favorites" | null
   >("home");
-  const [selectedLeague, setSelectedLeague] = useState<string | null>(null);
   const [showLeagueSelector, setShowLeagueSelector] = useState(false);
-  const [tweets, setTweets] = useState<Tweet[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
-  const [hasMore, setHasMore] = useState<boolean>(true);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
-  const [isChatModalOpen, setIsChatModalOpen] = useState<boolean>(false);
-  const [summary, setSummary] = useState<string>("");
-  const [isLoadingSummary, setIsLoadingSummary] = useState<boolean>(false);
-  const [summaryError, setSummaryError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (!session) {
-          router.push("/login");
-          return;
-        }
-      } catch (error) {
-        console.error("Session check error:", error);
-        router.push("/login");
-      } finally {
-        setCheckingAuth(false);
-      }
-    };
-    checkSession();
-  }, [router, supabase]);
-
-  // 모달 열릴 때 자동으로 요약 요청
-  useEffect(() => {
-    if (isChatModalOpen) {
-      const fetchSummary = async () => {
-        try {
-          setIsLoadingSummary(true);
-          setSummaryError(null);
-          setSummary(""); // 이전 요약 초기화
-          const result = await getDailySummary();
-          setSummary(result);
-        } catch (error) {
-          console.error("Summary fetch error:", error);
-          setSummaryError("요약을 가져오는 중 오류가 발생했습니다.");
-        } finally {
-          setIsLoadingSummary(false);
-        }
-      };
-
-      fetchSummary();
-    }
-  }, [isChatModalOpen]);
-
-  // 초기 데이터 로드
-  useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // 초기에는 첫 페이지만 로드
-        const tweetsData = await fetchTweets({
-          limit: ITEMS_PER_PAGE,
-        });
-
-        setTweets(tweetsData.items);
-        setNextCursor(tweetsData.pagination.nextCursor);
-        setHasMore(tweetsData.pagination.hasMore);
-
-        // 로딩 상태를 먼저 false로 설정하여 데이터를 즉시 표시
-        setLoading(false);
-
-        // 팔로우한 기자 목록은 백그라운드에서 로드
-        // 타임아웃을 추가하여 너무 오래 걸리지 않도록 함
-        const timeoutPromise = new Promise<{ data: null; error: string }>(
-          (resolve) =>
-            setTimeout(() => resolve({ data: null, error: "타임아웃" }), 5000)
-        );
-
-        const followedData = await Promise.race([
-          getFollowedJournalists(),
-          timeoutPromise,
-        ]);
-
-        if (followedData.data) {
-          const handles = new Set(
-            followedData.data.map((f) => f.journalist_handle)
-          );
-          setFollowedJournalists(handles);
-        }
-      } catch (error) {
-        console.error("Load initial data error:", error);
-        setError("피드를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
-        setLoading(false);
-      }
-    };
-
-    if (!checkingAuth) {
-      loadInitialData();
-    }
-  }, [checkingAuth]);
-
-  // 추가 데이터 로드 함수
-  const fetchMoreTweets = async () => {
-    if (isLoadingMore || !hasMore || !nextCursor) return;
-
-    try {
-      setIsLoadingMore(true);
-
-      const tweetsData = await fetchTweets({
-        limit: ITEMS_PER_PAGE,
-        afterId: nextCursor,
-      });
-
-      if (tweetsData.items.length > 0) {
-        setTweets((prev) => [...prev, ...tweetsData.items]);
-        setNextCursor(tweetsData.pagination.nextCursor);
-        setHasMore(tweetsData.pagination.hasMore);
-      } else {
-        setHasMore(false);
-      }
-    } catch (error) {
-      console.error("Failed to load more tweets:", error);
-      setError("추가 피드를 불러오지 못했습니다.");
-    } finally {
-      setIsLoadingMore(false);
-    }
-  };
-
-  // 무한 스크롤 훅 설정
-  const { sentinelRef } = useInfiniteScroll({
-    loadMore: fetchMoreTweets,
+  const {
+    checkingAuth,
+    followedJournalists,
+    selectedLeague,
+    setSelectedLeague,
+    tweets,
+    loading,
+    isLoadingMore,
     hasMore,
-    isLoading: isLoadingMore,
-    threshold: 200, // 하단 200px 전에 미리 로드
-  });
-
-  const toggleFavorite = async (handle: string, journalistName: string) => {
-    const isFollowing = followedJournalists.has(handle);
-
-    // 낙관적 업데이트 (UI 먼저 업데이트)
-    setFollowedJournalists((prev) => {
-      const next = new Set(prev);
-      if (isFollowing) {
-        next.delete(handle);
-      } else {
-        next.add(handle);
-      }
-      return next;
-    });
-
-    // Supabase에 저장
-    const result = isFollowing
-      ? await unfollowJournalist(handle)
-      : await followJournalist(handle, journalistName);
-
-    if (!result.success) {
-      // 실패 시 롤백
-      setFollowedJournalists((prev) => {
-        const next = new Set(prev);
-        if (isFollowing) {
-          next.add(handle);
-        } else {
-          next.delete(handle);
-        }
-        return next;
-      });
-      console.error("Toggle follow error:", result.error);
-      setError(`팔로우 실패: ${result.error}`);
-      // 에러 메시지 3초 후 자동 제거
-      setTimeout(() => setError(null), 3000);
-    }
-  };
-
-  // 리그 선택에 따라 트윗 필터링
-  const filteredTweets = useMemo(() => {
-    if (!selectedLeague) {
-      // 리그가 선택되지 않았으면 모든 트윗 반환
-      return tweets;
-    }
-
-    // Others를 선택한 경우: 다른 모든 주요 리그 팀들을 제외
-    if (selectedLeague === "Others") {
-      // 모든 주요 리그의 팀 이름 수집
-      const allMajorLeagueTeams: string[] = [];
-      Object.keys(LEAGUE_TEAMS).forEach((league) => {
-        if (league !== "Others") {
-          allMajorLeagueTeams.push(...LEAGUE_TEAMS[league]);
-        }
-      });
-
-      // 주요 리그 팀 이름이 포함되지 않은 트윗만 반환
-      return tweets.filter((tweet) => {
-        const tweetText = tweet.tweet_text.toLowerCase();
-        return !allMajorLeagueTeams.some((team) =>
-          tweetText.includes(team.toLowerCase())
-        );
-      });
-    }
-
-    // 특정 리그를 선택한 경우: 해당 리그의 팀 이름이 포함된 트윗만 필터링
-    const teamNames = LEAGUE_TEAMS[selectedLeague] || [];
-    if (teamNames.length === 0) {
-      return tweets;
-    }
-
-    return tweets.filter((tweet) => {
-      const tweetText = tweet.tweet_text.toLowerCase();
-      return teamNames.some((team) => tweetText.includes(team.toLowerCase()));
-    });
-  }, [tweets, selectedLeague]);
-
-  // 리스트 가상화 훅 설정
-  const SPACING = 16; // mb-4 = 16px
-  const DEFAULT_ITEM_HEIGHT = 200; // 기본 추정값 (간격 제외)
-
-  const { virtualItems, totalHeight } = useVirtualList({
-    itemCount: filteredTweets.length,
-    itemHeight: DEFAULT_ITEM_HEIGHT, // 초기 추정값
-    itemSpacing: SPACING, // 아이템 간 간격
-    measureItemHeight: true, // 자동 높이 측정 활성화
-    scrollTarget: "window",
-    containerRef: containerRef as React.RefObject<HTMLElement | null>,
-    overscan: 5,
-  });
+    error,
+    containerRef,
+    isChatModalOpen,
+    setIsChatModalOpen,
+    summary,
+    isLoadingSummary,
+    summaryError,
+    toggleFavorite,
+    virtualItems,
+    totalHeight,
+    sentinelRef,
+  } = useHomePage();
 
   if (checkingAuth) {
     return null;
@@ -483,7 +130,7 @@ export default function HomePage() {
                 </div>
               ))}
             {error && <p className="text-destructive text-sm">{error}</p>}
-            {!loading && !error && filteredTweets.length === 0 && (
+            {!loading && !error && tweets.length === 0 && (
               <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
                 <div className="flex flex-col items-center justify-center py-12">
                   <p className="text-muted-foreground text-sm text-center">
@@ -494,20 +141,20 @@ export default function HomePage() {
                 </div>
               </Card>
             )}
-            {!loading && !error && filteredTweets.length > 0 && (
+            {!loading && !error && tweets.length > 0 && (
               <div
                 ref={containerRef}
                 className="scrollbar-hide"
                 style={{
                   position: "relative",
                   minHeight: totalHeight > 0 ? totalHeight : undefined,
-                  overflow: "hidden", // 스크롤 완전히 방지
+                  overflow: "hidden",
                   msOverflowStyle: "none",
                   scrollbarWidth: "none",
                 }}
               >
                 {virtualItems.map((virtualItem: VirtualItem) => {
-                  const t = filteredTweets[virtualItem.index];
+                  const t = tweets[virtualItem.index];
                   if (!t) return null;
 
                   const displayName =
@@ -516,7 +163,7 @@ export default function HomePage() {
                   const mapped: FeedPostProps = {
                     journalist: displayName,
                     handle: `@${t.author_username}`,
-                    credibility: 2, // 기본값 (Tier 2)
+                    credibility: 2,
                     content: t.tweet_text,
                     images: (t.images ?? [])
                       .map((u) => normalizeTwitterMediaUrl(u)!)
@@ -552,7 +199,6 @@ export default function HomePage() {
                     </div>
                   );
                 })}
-                {/* 가상화를 위한 높이 확보 spacer */}
                 <div
                   style={{
                     height: totalHeight,
@@ -561,7 +207,6 @@ export default function HomePage() {
                   }}
                   aria-hidden="true"
                 />
-                {/* 무한 스크롤 sentinel 및 로딩 인디케이터 */}
                 <div ref={sentinelRef} className="py-4">
                   {isLoadingMore && (
                     <div className="space-y-4 py-4">
@@ -570,7 +215,7 @@ export default function HomePage() {
                       ))}
                     </div>
                   )}
-                  {!hasMore && !isLoadingMore && filteredTweets.length > 0 && (
+                  {!hasMore && !isLoadingMore && tweets.length > 0 && (
                     <div className="py-4">
                       <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card">
                         <div className="flex flex-col items-center justify-center py-8">
@@ -588,7 +233,6 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* AI 챗봇 플로팅 버튼 */}
       <button
         className={cn(
           "fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg",
@@ -610,18 +254,7 @@ export default function HomePage() {
         />
       </button>
 
-      {/* AI 챗봇 모달 */}
-      <Dialog
-        open={isChatModalOpen}
-        onOpenChange={(open) => {
-          setIsChatModalOpen(open);
-          if (!open) {
-            // 모달 닫을 때 상태 초기화
-            setSummary("");
-            setSummaryError(null);
-          }
-        }}
-      >
+      <Dialog open={isChatModalOpen} onOpenChange={setIsChatModalOpen}>
         <DialogContent
           showCloseButton={false}
           className={cn(
@@ -631,7 +264,6 @@ export default function HomePage() {
               : "bg-[#141414] border-[rgb(57,57,57)]"
           )}
         >
-          {/* 채팅 헤더 */}
           <DialogHeader className="px-6 py-4 border-b border-border dark:border-[rgb(57,57,57)] relative">
             <div className="flex items-center gap-3">
               <Image
@@ -645,7 +277,6 @@ export default function HomePage() {
                 오늘의 이적시장 요약
               </DialogTitle>
             </div>
-            {/* 커스텀 닫기 버튼 (주황색 보더 없음) */}
             <DialogClose
               className={cn(
                 "absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100",
@@ -658,9 +289,7 @@ export default function HomePage() {
             </DialogClose>
           </DialogHeader>
 
-          {/* 채팅 메시지 영역 */}
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-            {/* 요약 메시지 */}
             {isLoadingSummary ? (
               <div className="flex gap-3">
                 <div className="shrink-0">

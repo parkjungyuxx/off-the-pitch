@@ -42,10 +42,8 @@ export function FeedPost({
   const [avatarError, setAvatarError] = useState<boolean>(false);
   const FALLBACK_AVATAR = "/placeholder-user.jpg";
 
-  // handle에서 @를 제거한 username 추출
   const username = handle.replace(/^@/, "");
 
-  // 번역 관련 로직
   const {
     isTranslated,
     translatedContent,

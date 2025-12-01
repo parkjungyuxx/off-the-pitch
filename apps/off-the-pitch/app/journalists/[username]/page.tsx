@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, use } from "react";
+import { use, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { IoIosArrowBack } from "react-icons/io";
@@ -10,17 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FeedPost } from "@/components/feed-post";
 import { JournalistSkeletonList } from "@/components/search/journalist-skeleton-list";
-import { fetchTweets, type Tweet } from "@/lib/tweets";
-import {
-  fetchJournalistProfile,
-  type JournalistProfile,
-} from "@/lib/journalists";
-import {
-  followJournalist,
-  unfollowJournalist,
-  getFollowedJournalists,
-} from "@/lib/follows";
 import { useTheme } from "@/hooks/use-theme";
+import { useJournalistProfile } from "@/hooks/use-journalist-profile";
 import { cn } from "@/lib/utils";
 
 interface JournalistPageProps {
@@ -28,27 +19,6 @@ interface JournalistPageProps {
     username: string;
   }>;
 }
-
-const normalizeTwitterMediaUrl = (url?: string | null): string | undefined => {
-  if (!url) return undefined;
-  if (url.startsWith("https://pbs.twimg.com/media/") && !url.includes("?")) {
-    return `${url}?format=jpg&name=large`;
-  }
-  return url;
-};
-
-const formatRelativeTime = (iso: string): string => {
-  const now = Date.now();
-  const then = new Date(iso).getTime();
-  const diff = Math.max(0, Math.floor((now - then) / 1000));
-  if (diff < 60) return `${diff}s`;
-  const m = Math.floor(diff / 60);
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  const d = Math.floor(h / 24);
-  return `${d}d`;
-};
 
 const CredibilityIcon = ({ level }: { level: 1 | 2 | 3 }) => {
   const icons = {
@@ -90,131 +60,19 @@ export default function JournalistPage({ params }: JournalistPageProps) {
   const [activeMenu, setActiveMenu] = useState<
     "home" | "search" | "favorites" | null
   >("search");
-  const [tweets, setTweets] = useState<Tweet[]>([]);
-  const [profile, setProfile] = useState<JournalistProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isFollowing, setIsFollowing] = useState<boolean>(false);
-  const [avatarError, setAvatarError] = useState<boolean>(false);
+
+  const {
+    displayProfile,
+    tweets,
+    loading,
+    error,
+    isFollowing,
+    avatarError,
+    setAvatarError,
+    toggleFavorite,
+  } = useJournalistProfile(username);
+
   const FALLBACK_AVATAR = "/placeholder-user.jpg";
-
-  useEffect(() => {
-    const run = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // 프로필 정보, 트윗 목록, 팔로우 상태를 병렬로 가져오기
-        const [profileData, tweetsData, followedData] = await Promise.all([
-          fetchJournalistProfile(username),
-          fetchTweets({
-            limit: 20,
-            journalists: [username],
-          }),
-          getFollowedJournalists(),
-        ]);
-
-        setTweets(tweetsData.items);
-
-        // 팔로우 상태 확인
-        if (followedData.data) {
-          const handle = `@${username}`;
-          setIsFollowing(
-            followedData.data.some((f) => f.journalist_handle === handle)
-          );
-        }
-
-        // 프로필 정보가 없어도 트윗 데이터가 있으면 프로필 생성
-        if (profileData) {
-          setProfile(profileData);
-        } else if (tweetsData.items.length > 0) {
-          // 트윗 데이터에서 프로필 정보 추출
-          const firstTweet = tweetsData.items[0];
-          const displayName =
-            (firstTweet.author_name?.split("@")[0]?.trim() as string) ||
-            firstTweet.author_name ||
-            username;
-
-          setProfile({
-            username,
-            name: displayName,
-            profileImage: firstTweet.author_profile_image || null,
-            credibility: (Math.floor(Math.random() * 3) + 1) as 1 | 2 | 3,
-            tweetCount: tweetsData.items.length, // 임시로 현재 로드된 수 사용
-          });
-        } else {
-          setError("기자 정보를 찾을 수 없습니다.");
-        }
-      } catch (err) {
-        console.error("[journalist page] fetch error", err);
-        setError("기자 피드를 불러오는 중 문제가 발생했습니다.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    run();
-  }, [username]);
-
-  // 프로필이 변경될 때 avatarError 리셋
-  useEffect(() => {
-    setAvatarError(false);
-  }, [profile?.profileImage, username]);
-
-  // 프로필 정보가 없을 때 기본값
-  const displayProfile = useMemo(() => {
-    if (!profile) {
-      return {
-        name: username,
-        avatar: "/placeholder.svg",
-        credibility: 2 as 1 | 2 | 3,
-        tweetCount: 0,
-      };
-    }
-    return {
-      name: profile.name,
-      avatar:
-        normalizeTwitterMediaUrl(profile.profileImage) || "/placeholder.svg",
-      credibility: profile.credibility,
-      tweetCount: profile.tweetCount,
-    };
-  }, [profile, username]);
-
-  const mappedTweets = tweets.map((t) => ({
-    tweetId: t.tweet_id,
-    journalist:
-      (t.author_name?.split("@")[0]?.trim() as string) || t.author_name,
-    handle: `@${t.author_username}`,
-    credibility: 2 as 1 | 2 | 3,
-    content: t.tweet_text,
-    images: (t.images ?? [])
-      .map((url) => normalizeTwitterMediaUrl(url)!)
-      .filter(Boolean),
-    time: formatRelativeTime(t.created_at),
-    link: t.url,
-    avatar:
-      normalizeTwitterMediaUrl(t.author_profile_image) || "/placeholder.svg",
-  }));
-
-  const toggleFavorite = async () => {
-    if (!profile) return;
-
-    // 낙관적 업데이트 (UI 먼저 업데이트)
-    setIsFollowing((prev) => !prev);
-
-    // Supabase에 저장
-    const handle = `@${username}`;
-    const result = isFollowing
-      ? await unfollowJournalist(handle)
-      : await followJournalist(handle, profile.name);
-
-    if (!result.success) {
-      // 실패 시 롤백
-      setIsFollowing((prev) => !prev);
-      console.error("Toggle follow error:", result.error);
-      setError(`팔로우 실패: ${result.error}`);
-      setTimeout(() => setError(null), 3000);
-    }
-  };
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -258,7 +116,11 @@ export default function JournalistPage({ params }: JournalistPageProps) {
               <Card className="p-6 rounded-2xl border border-border dark:border-[rgb(57,57,57)] bg-card">
                 <div className="flex items-start gap-4">
                   <Image
-                    src={avatarError || !displayProfile.avatar ? FALLBACK_AVATAR : displayProfile.avatar}
+                    src={
+                      avatarError || !displayProfile.avatar
+                        ? FALLBACK_AVATAR
+                        : displayProfile.avatar
+                    }
                     alt={displayProfile.name}
                     width={72}
                     height={72}
@@ -306,12 +168,12 @@ export default function JournalistPage({ params }: JournalistPageProps) {
 
             {loading ? (
               <JournalistSkeletonList count={3} />
-            ) : mappedTweets.length === 0 ? (
+            ) : tweets.length === 0 ? (
               <Card className="p-6 rounded-2xl border border-[rgb(57,57,57)] bg-card text-center text-muted-foreground">
                 아직 게시된 트윗이 없습니다.
               </Card>
             ) : (
-              mappedTweets.map((post) => (
+              tweets.map((post) => (
                 <FeedPost
                   key={post.tweetId}
                   journalist={post.journalist}

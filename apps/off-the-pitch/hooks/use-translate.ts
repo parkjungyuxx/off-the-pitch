@@ -25,7 +25,6 @@ export function useTranslate({
   const [translateMessage, setTranslateMessage] =
     useState<string>("번역 중입니다...");
 
-  // 번역 중 메시지 변경 (시간 경과에 따라)
   useEffect(() => {
     if (!isTranslating) {
       setTranslateMessage("번역 중입니다...");
@@ -53,18 +52,15 @@ export function useTranslate({
 
   const handleTranslate = async () => {
     if (isTranslated) {
-      // 이미 번역된 상태면 원문 보기로 전환
       setIsTranslated(false);
       return;
     }
 
-    // 이미 번역된 내용이 있으면 재사용
     if (translatedContent) {
       setIsTranslated(true);
       return;
     }
 
-    // 번역 수행
     try {
       setIsTranslating(true);
       setTranslateError(null);

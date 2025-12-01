@@ -9,12 +9,10 @@ export async function GET(request: Request) {
   const errorDescription = requestUrl.searchParams.get("error_description");
   const next = requestUrl.searchParams.get("next") || "/";
 
-  // OAuth에서 에러가 발생한 경우 (사용자 취소 등)
   if (error) {
     console.error("OAuth error:", { error, errorDescription });
     let errorMessage = "로그인에 실패했습니다. 잠시 후 다시 시도해주세요.";
     
-    // 사용자가 취소한 경우
     if (error === "access_denied" || error === "user_cancelled") {
       errorMessage = "로그인이 취소되었습니다.";
     }
