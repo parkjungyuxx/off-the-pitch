@@ -10,7 +10,11 @@ import { Card } from "@/components/ui/card";
 import { useTheme } from "@/hooks/use-theme";
 import { useFavorites } from "@/hooks/use-favorites";
 import { useDragScroll } from "@/hooks/use-drag-scroll";
-import { normalizeTwitterMediaUrl, formatRelativeTime } from "@/lib/utils";
+import {
+  normalizeTwitterMediaUrl,
+  formatRelativeTime,
+  getJournalistCredibility,
+} from "@/lib/utils";
 import type { VirtualItem } from "@bongsik/virtual-list";
 
 export default function FavoritesPage() {
@@ -146,7 +150,7 @@ export default function FavoritesPage() {
                   const mapped: FeedPostProps = {
                     journalist: displayName,
                     handle: `@${t.author_username}`,
-                    credibility: 2,
+                    credibility: getJournalistCredibility(t.author_username),
                     content: t.tweet_text,
                     images: (t.images ?? [])
                       .map((u) => normalizeTwitterMediaUrl(u)!)

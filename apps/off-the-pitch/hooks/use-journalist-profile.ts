@@ -9,7 +9,11 @@ import {
   unfollowJournalist,
   getFollowedJournalists,
 } from "@/lib/follows";
-import { normalizeTwitterMediaUrl, formatRelativeTime } from "@/lib/utils";
+import {
+  normalizeTwitterMediaUrl,
+  formatRelativeTime,
+  getJournalistCredibility,
+} from "@/lib/utils";
 
 export interface MappedTweet {
   tweetId: string;
@@ -96,7 +100,7 @@ export function useJournalistProfile(
             username,
             name: displayName,
             profileImage: firstTweet.author_profile_image || null,
-            credibility: (Math.floor(Math.random() * 3) + 1) as 1 | 2 | 3,
+            credibility: getJournalistCredibility(username),
             tweetCount: tweetsData.items.length,
           });
         } else {
@@ -124,7 +128,7 @@ export function useJournalistProfile(
       return {
         name: username,
         avatar: "/placeholder.svg",
-        credibility: 2 as 1 | 2 | 3,
+        credibility: getJournalistCredibility(username),
         tweetCount: 0,
       };
     }
@@ -144,7 +148,7 @@ export function useJournalistProfile(
       journalist:
         (t.author_name?.split("@")[0]?.trim() as string) || t.author_name,
       handle: `@${t.author_username}`,
-      credibility: 2 as 1 | 2 | 3,
+      credibility: getJournalistCredibility(t.author_username),
       content: t.tweet_text,
       images: (t.images ?? [])
         .map((url) => normalizeTwitterMediaUrl(url)!)

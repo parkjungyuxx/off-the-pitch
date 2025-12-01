@@ -1,4 +1,5 @@
 import { getSupabaseClient } from "@/lib/supabase";
+import { getJournalistCredibility } from "@/lib/utils";
 
 export type JournalistProfile = {
   username: string;
@@ -53,7 +54,7 @@ export const fetchJournalistProfile = async (
       username,
       name: displayName,
       profileImage: sampleTweet.author_profile_image || null,
-      credibility: (Math.floor(Math.random() * 3) + 1) as 1 | 2 | 3,
+      credibility: getJournalistCredibility(username),
       tweetCount: count || 0,
     };
   } catch (error) {

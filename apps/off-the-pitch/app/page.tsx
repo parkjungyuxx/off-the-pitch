@@ -8,7 +8,12 @@ import { FeedPost, type FeedPostProps } from "@/components/feed-post";
 import { FeedPostSkeleton } from "@/components/feed-post-skeleton";
 import { Card } from "@/components/ui/card";
 import { LeagueSelector } from "@/components/league-selector";
-import { cn, normalizeTwitterMediaUrl, formatRelativeTime } from "@/lib/utils";
+import {
+  cn,
+  normalizeTwitterMediaUrl,
+  formatRelativeTime,
+  getJournalistCredibility,
+} from "@/lib/utils";
 import { useTheme } from "@/hooks/use-theme";
 import { useHomePage } from "@/hooks/use-home-page";
 import { useVirtualList, type VirtualItem } from "@bongsik/virtual-list";
@@ -163,7 +168,7 @@ export default function HomePage() {
                   const mapped: FeedPostProps = {
                     journalist: displayName,
                     handle: `@${t.author_username}`,
-                    credibility: 2,
+                    credibility: getJournalistCredibility(t.author_username),
                     content: t.tweet_text,
                     images: (t.images ?? [])
                       .map((u) => normalizeTwitterMediaUrl(u)!)
