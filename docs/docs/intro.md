@@ -2,46 +2,46 @@
 sidebar_position: 1
 ---
 
-# Tutorial Intro
+# 소개
 
-Let's discover **Docusaurus in less than 5 minutes**.
+Bongsik Libraries는 React 애플리케이션을 위한 고성능, 타입 안전한 훅 라이브러리 모음입니다.
 
-## Getting Started
+## 라이브러리
 
-Get started by **creating a new site**.
+### @bongsik/infinite-scroll
 
-Or **try Docusaurus immediately** with **[docusaurus.new](https://docusaurus.new)**.
+React 애플리케이션을 위한 타입 안전한 무한 스크롤 훅 라이브러리입니다. Intersection Observer API를 활용하여 성능 최적화된 무한 스크롤 기능을 제공합니다.
 
-### What you'll need
+[무한 스크롤 문서 보기](/docs/infinite-scroll/intro)
 
-- [Node.js](https://nodejs.org/en/download/) version 20.0 or above:
-  - When installing Node.js, you are recommended to check all checkboxes related to dependencies.
+### @bongsik/virtual-list
 
-## Generate a new site
+React 애플리케이션을 위한 타입 안전한 가상화 리스트 훅 라이브러리입니다. 대량의 데이터를 효율적으로 렌더링하기 위해 뷰포트에 보이는 아이템만 렌더링하는 가상화 기능을 제공합니다.
 
-Generate a new Docusaurus site using the **classic template**.
+[가상화 리스트 문서 보기](/docs/virtual-list/intro)
 
-The classic template will automatically be added to your project after you run the command:
+## 특징
 
-```bash
-npm init docusaurus@latest my-website classic
-```
+- ✅ **타입 안전성**: 완전한 TypeScript 지원
+- ⚡ **고성능**: 최신 브라우저 API 활용 (Intersection Observer, ResizeObserver)
+- 🎯 **유연성**: 데이터 페칭 로직과 완전히 분리된 순수한 훅
+- 📦 **경량화**: 최소한의 의존성
+- 🔧 **사용하기 쉬움**: 직관적인 API
 
-You can type this command into Command Prompt, Powershell, Terminal, or any other integrated terminal of your code editor.
-
-The command also installs all necessary dependencies you need to run Docusaurus.
-
-## Start your site
-
-Run the development server:
+## 설치
 
 ```bash
-cd my-website
-npm run start
+# 무한 스크롤
+npm install @bongsik/infinite-scroll
+# or
+pnpm add @bongsik/infinite-scroll
+
+# 가상화 리스트
+npm install @bongsik/virtual-list
+# or
+pnpm add @bongsik/virtual-list
 ```
 
-The `cd` command changes the directory you're working with. In order to work with your newly created Docusaurus site, you'll need to navigate the terminal there.
+## 시작하기
 
-The `npm run start` command builds your website locally and serves it through a development server, ready for you to view at http://localhost:3000/.
-
-Open `docs/intro.md` (this page) and edit some lines: the site **reloads automatically** and displays your changes.
+각 라이브러리의 문서에서 빠른 시작 가이드를 확인하세요.
