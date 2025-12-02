@@ -48,6 +48,9 @@ next-env.d.ts
 *.mdc
 *.md
 !**/README.md
+# Allow Docusaurus docs and blog markdown files
+!docs/**/*.md
+!docs/**/*.mdx
 
 # memory-bank (context engineering)
 memory-bank/
