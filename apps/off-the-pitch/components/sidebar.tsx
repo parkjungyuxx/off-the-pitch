@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { Search, Heart, Sun, Moon, LogOut } from "lucide-react";
 import { CgDetailsMore } from "react-icons/cg";
 import { GoHome, GoHomeFill } from "react-icons/go";
@@ -49,20 +48,6 @@ export function Sidebar({
     <>
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-20 flex-col items-center py-8 bg-background z-20">
-        <div className="mb-8">
-          <Link href="/">
-            <div className="w-12 h-12 flex items-center justify-center">
-              <Image
-                src="/logo.svg"
-                alt="OFF THE PITCH"
-                width={34}
-                height={34}
-                className={cn("rounded-full", theme === "light" && "invert")}
-              />
-            </div>
-          </Link>
-        </div>
-
         <nav className="flex flex-col items-center justify-center gap-4 flex-1">
           <Button
             variant="ghost"

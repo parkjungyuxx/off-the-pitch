@@ -76,10 +76,6 @@ const config: Config = {
     },
     navbar: {
       title: 'Bongsik Libraries',
-      logo: {
-        alt: 'Bongsik Libraries Logo',
-        src: 'img/logo.svg',
-      },
       items: [
         {
           type: 'docSidebar',
