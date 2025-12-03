@@ -112,3 +112,9 @@
   font-weight: 700 !important;
   letter-spacing: 0.05em !important;
 }
+
+/* 네비게이션 바 로고 스타일 */
+.navbar__logo {
+  height: 2rem;
+  margin-right: 0.75rem;
+}

@@ -7,7 +7,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
   title: 'Bongsik Libraries',
   tagline: 'React 무한 스크롤 및 가상화 리스트 훅 라이브러리',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/bongsik_logo.svg',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
@@ -76,6 +76,11 @@ const config: Config = {
     },
     navbar: {
       title: 'Bongsik Libraries',
+      logo: {
+        alt: 'Bongsik Libraries Logo',
+        src: 'img/bongsik_logo.svg',
+        srcDark: 'img/bongsik_logo.svg',
+      },
       items: [
         {
           type: 'docSidebar',

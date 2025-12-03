@@ -11,8 +11,22 @@
   background-color: #0f0f0f;
 }
 
+.titleContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.logo {
+  height: 3rem;
+  width: auto;
+}
+
 .heroBanner :global(.hero__title) {
   color: #ffffff;
+  margin: 0;
 }
 
 .heroBanner :global(.hero__subtitle) {
