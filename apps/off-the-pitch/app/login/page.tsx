@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense } from "react";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FcGoogle } from "react-icons/fc";
@@ -14,15 +13,6 @@ function LoginContent() {
     <div className="flex min-h-screen bg-background items-center justify-center p-4">
       <Card className="w-full max-w-md p-8 rounded-2xl border border-[rgb(57,57,57)] bg-card">
         <div className="flex flex-col items-center mb-8">
-          <div className="mb-6">
-            <Image
-              src="/logo.svg"
-              alt="OFF THE PITCH"
-              width={64}
-              height={64}
-              className="rounded-full"
-            />
-          </div>
           <h1 className="text-3xl font-display font-bold tracking-wide text-balance">
             오프 더 피치
           </h1>
