@@ -4,27 +4,111 @@
  * work well for content-centric websites.
  */
 
+/* Vitro Inspire 폰트 */
+@font-face {
+  font-family: "Vitro Inspire";
+  src: url("../../static/fonts/VITRO_INSPIRE_OTF.otf") format("opentype");
+  font-weight: 700;
+  font-display: swap;
+}
+
 /* You can override the default Infima variables here. */
 :root {
-  --ifm-color-primary: #2e8555;
-  --ifm-color-primary-dark: #29784c;
-  --ifm-color-primary-darker: #277148;
-  --ifm-color-primary-darkest: #205d3b;
-  --ifm-color-primary-light: #33925d;
-  --ifm-color-primary-lighter: #359962;
-  --ifm-color-primary-lightest: #3cad6e;
+  --ifm-color-primary: #ffffff;
+  --ifm-color-primary-dark: #e0e0e0;
+  --ifm-color-primary-darker: #d0d0d0;
+  --ifm-color-primary-darkest: #b0b0b0;
+  --ifm-color-primary-light: #ffffff;
+  --ifm-color-primary-lighter: #ffffff;
+  --ifm-color-primary-lightest: #ffffff;
+  --ifm-background-color: #0f0f0f;
+  --ifm-background-surface-color: #111111;
+  --ifm-color-content: #ffffff;
+  --ifm-color-content-secondary: #a1a1a1;
   --ifm-code-font-size: 95%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
 }
 
 /* For readability concerns, you should choose a lighter palette in dark mode. */
 [data-theme='dark'] {
-  --ifm-color-primary: #25c2a0;
-  --ifm-color-primary-dark: #21af90;
-  --ifm-color-primary-darker: #1fa588;
-  --ifm-color-primary-darkest: #1a8870;
-  --ifm-color-primary-light: #29d5b0;
-  --ifm-color-primary-lighter: #32d8b4;
-  --ifm-color-primary-lightest: #4fddbf;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  --ifm-color-primary: #ffffff;
+  --ifm-color-primary-dark: #e0e0e0;
+  --ifm-color-primary-darker: #d0d0d0;
+  --ifm-color-primary-darkest: #b0b0b0;
+  --ifm-color-primary-light: #ffffff;
+  --ifm-color-primary-lighter: #ffffff;
+  --ifm-color-primary-lightest: #ffffff;
+  --ifm-background-color: #0f0f0f;
+  --ifm-background-surface-color: #111111;
+  --ifm-navbar-background-color: #111111;
+  --ifm-card-background-color: #181818;
+  --ifm-color-content: #ffffff;
+  --ifm-color-content-secondary: #a1a1a1;
+  --ifm-border-color: #272727;
+  --ifm-footer-background-color: #0f0f0f;
+  --ifm-footer-color: #a1a1a1;
+  --ifm-footer-link-color: #ffffff;
+  --ifm-footer-title-color: #ffffff;
+  --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
+}
+
+/* Footer 스타일 커스터마이징 */
+.footer {
+  background-color: #0f0f0f;
+  border-top: 1px solid #272727;
+}
+
+.footer__title {
+  color: #ffffff;
+}
+
+.footer__link-item {
+  color: #a1a1a1;
+}
+
+.footer__link-item:hover {
+  color: #ffffff;
+}
+
+.footer__copyright {
+  color: #a1a1a1;
+}
+
+/* Hero 배너 스타일 */
+.hero--primary {
+  background-color: #0f0f0f !important;
+}
+
+.hero__title {
+  color: #ffffff !important;
+  font-family: "Vitro Inspire", "Bebas Neue", "Impact", sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+}
+
+.hero__subtitle {
+  color: #a1a1a1 !important;
+}
+
+/* Hero 버튼 스타일 */
+.hero .button--secondary {
+  background-color: #181818 !important;
+  border: 1px solid #272727 !important;
+  color: #ffffff !important;
+  border-radius: 1rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.hero .button--secondary:hover {
+  background-color: rgba(24, 24, 24, 0.8) !important;
+  border-color: #3a3a3a !important;
+  color: #ffffff !important;
+  transform: translateY(-2px) !important;
+}
+
+/* 네비게이션 바 타이틀 폰트 */
+.navbar__title {
+  font-family: "Vitro Inspire", "Bebas Neue", "Impact", sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
 }

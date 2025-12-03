@@ -1,18 +1,18 @@
 import type {ReactNode} from 'react';
 import clsx from 'clsx';
-import Heading from '@theme/Heading';
+import Link from '@docusaurus/Link';
 import styles from './styles.module.css';
 
 type FeatureItem = {
   title: string;
-  Svg: React.ComponentType<React.ComponentProps<'svg'>>;
   description: ReactNode;
+  link: string;
+  linkText: string;
 };
 
 const FeatureList: FeatureItem[] = [
   {
     title: '@bongsik/infinite-scroll',
-    Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
     description: (
       <>
         Intersection Observer API를 활용한 고성능 무한 스크롤 훅입니다. 
@@ -20,10 +20,11 @@ const FeatureList: FeatureItem[] = [
         타입 안전성과 경량화를 제공합니다.
       </>
     ),
+    link: '/docs/infinite-scroll/intro',
+    linkText: '문서 보기 →',
   },
   {
     title: '@bongsik/virtual-list',
-    Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
     description: (
       <>
         대량의 데이터를 효율적으로 렌더링하는 가상화 리스트 훅입니다. 
@@ -31,18 +32,20 @@ const FeatureList: FeatureItem[] = [
         뷰포트에 보이는 아이템만 렌더링하여 성능을 최적화합니다.
       </>
     ),
+    link: '/docs/virtual-list/intro',
+    linkText: '문서 보기 →',
   },
 ];
 
-function Feature({title, Svg, description}: FeatureItem) {
+function Feature({title, description, link, linkText}: FeatureItem) {
   return (
-    <div className={clsx('col col--6')}>
-      <div className="text--center">
-        <Svg className={styles.featureSvg} role="img" />
-      </div>
-      <div className="text--center padding-horiz--md">
-        <Heading as="h3">{title}</Heading>
-        <p>{description}</p>
+    <div className={styles.featureCard}>
+      <div className={styles.featureCardContent}>
+        <h3 className={styles.featureTitle}>{title}</h3>
+        <p className={styles.featureDescription}>{description}</p>
+        <Link to={link} className={styles.featureLink}>
+          {linkText}
+        </Link>
       </div>
     </div>
   );
@@ -51,12 +54,10 @@ function Feature({title, Svg, description}: FeatureItem) {
 export default function HomepageFeatures(): ReactNode {
   return (
     <section className={styles.features}>
-      <div className="container">
-        <div className="row">
-          {FeatureList.map((props, idx) => (
-            <Feature key={idx} {...props} />
-          ))}
-        </div>
+      <div className={styles.featuresContainer}>
+        {FeatureList.map((props, idx) => (
+          <Feature key={idx} {...props} />
+        ))}
       </div>
     </section>
   );
