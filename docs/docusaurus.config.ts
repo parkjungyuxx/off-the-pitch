@@ -6,7 +6,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'Bongsik Libraries',
-  tagline: 'React hooks for infinite scroll and virtualized list',
+  tagline: 'React 무한 스크롤 및 가상화 리스트 훅 라이브러리',
   favicon: 'img/favicon.ico',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
@@ -81,7 +81,7 @@ const config: Config = {
           type: 'docSidebar',
           sidebarId: 'tutorialSidebar',
           position: 'left',
-          label: 'Docs',
+          label: '문서',
         },
         {
           href: 'https://github.com/parkjungyuxx/off-the-pitch',

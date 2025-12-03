@@ -20,8 +20,13 @@ function HomepageHeader() {
         <div className={styles.buttons}>
           <Link
             className="button button--secondary button--lg"
-            to="/docs/intro">
-            Docusaurus Tutorial - 5min ⏱️
+            to="/docs/infinite-scroll/intro">
+            무한 스크롤 시작하기 →
+          </Link>
+          <Link
+            className="button button--secondary button--lg"
+            to="/docs/virtual-list/intro">
+            가상화 리스트 시작하기 →
           </Link>
         </div>
       </div>
@@ -33,8 +38,8 @@ export default function Home(): ReactNode {
   const {siteConfig} = useDocusaurusContext();
   return (
     <Layout
-      title={`Hello from ${siteConfig.title}`}
-      description="Description will go into a meta tag in <head />">
+      title={siteConfig.title}
+      description="React 애플리케이션을 위한 타입 안전한 무한 스크롤 및 가상화 리스트 훅 라이브러리">
       <HomepageHeader />
       <main>
         <HomepageFeatures />
