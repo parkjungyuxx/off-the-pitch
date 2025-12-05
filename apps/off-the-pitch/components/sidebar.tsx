@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search, Heart, Sun, Moon, LogOut } from "lucide-react";
 import { CgDetailsMore } from "react-icons/cg";
@@ -12,7 +11,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase-client";
+import { useLogout } from "@/hooks/use-logout";
+import { useThemeToggle } from "@/hooks/use-theme-toggle";
 
 interface SidebarProps {
   activeMenu: "home" | "search" | "favorites" | null;
@@ -27,22 +27,8 @@ export function Sidebar({
   theme = "dark",
   onThemeChange,
 }: SidebarProps) {
-  const router = useRouter();
-  const supabase = createClient();
-
-  const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("Logout error:", error);
-        return;
-      }
-      router.push("/login");
-      router.refresh();
-    } catch (error) {
-      console.error("Unexpected logout error:", error);
-    }
-  };
+  const { handleLogout } = useLogout();
+  const { toggleTheme } = useThemeToggle({ theme, onThemeChange });
 
   return (
     <>
@@ -134,19 +120,17 @@ export function Sidebar({
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-3 text-sm font-normal hover:bg-sidebar-accent"
-                onClick={() =>
-                  onThemeChange?.(theme === "dark" ? "light" : "dark")
-                }
+                onClick={toggleTheme}
               >
                 {theme === "dark" ? (
                   <>
                     <Sun className="w-4 h-4" />
-                    <span>Light Mode</span>
+                    <span>라이트모드</span>
                   </>
                 ) : (
                   <>
                     <Moon className="w-4 h-4" />
-                    <span>Dark Mode</span>
+                    <span>다크모드</span>
                   </>
                 )}
               </Button>
@@ -156,7 +140,7 @@ export function Sidebar({
                 onClick={handleLogout}
               >
                 <LogOut className="w-4 h-4" />
-                <span>Logout</span>
+                <span>로그아웃</span>
               </Button>
             </div>
           </PopoverContent>
@@ -248,19 +232,17 @@ export function Sidebar({
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-3 text-sm font-normal hover:bg-sidebar-accent"
-                onClick={() =>
-                  onThemeChange?.(theme === "dark" ? "light" : "dark")
-                }
+                onClick={toggleTheme}
               >
                 {theme === "dark" ? (
                   <>
                     <Sun className="w-4 h-4" />
-                    <span>Light Mode</span>
+                    <span>라이트모드</span>
                   </>
                 ) : (
                   <>
                     <Moon className="w-4 h-4" />
-                    <span>Dark Mode</span>
+                    <span>다크모드</span>
                   </>
                 )}
               </Button>
@@ -270,7 +252,7 @@ export function Sidebar({
                 onClick={handleLogout}
               >
                 <LogOut className="w-4 h-4" />
-                <span>Logout</span>
+                <span>로그아웃</span>
               </Button>
             </div>
           </PopoverContent>
