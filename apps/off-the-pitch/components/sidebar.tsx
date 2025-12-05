@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useLogout } from "@/hooks/use-logout";
+import { useThemeToggle } from "@/hooks/use-theme-toggle";
 
 interface SidebarProps {
   activeMenu: "home" | "search" | "favorites" | null;
@@ -27,6 +28,7 @@ export function Sidebar({
   onThemeChange,
 }: SidebarProps) {
   const { handleLogout } = useLogout();
+  const { toggleTheme } = useThemeToggle({ theme, onThemeChange });
 
   return (
     <>
@@ -118,9 +120,7 @@ export function Sidebar({
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-3 text-sm font-normal hover:bg-sidebar-accent"
-                onClick={() =>
-                  onThemeChange?.(theme === "dark" ? "light" : "dark")
-                }
+                onClick={toggleTheme}
               >
                 {theme === "dark" ? (
                   <>
@@ -232,9 +232,7 @@ export function Sidebar({
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-3 text-sm font-normal hover:bg-sidebar-accent"
-                onClick={() =>
-                  onThemeChange?.(theme === "dark" ? "light" : "dark")
-                }
+                onClick={toggleTheme}
               >
                 {theme === "dark" ? (
                   <>
