@@ -141,12 +141,12 @@ export function Sidebar({
                 {theme === "dark" ? (
                   <>
                     <Sun className="w-4 h-4" />
-                    <span>Light Mode</span>
+                    <span>라이트모드</span>
                   </>
                 ) : (
                   <>
                     <Moon className="w-4 h-4" />
-                    <span>Dark Mode</span>
+                    <span>다크모드</span>
                   </>
                 )}
               </Button>
@@ -156,7 +156,7 @@ export function Sidebar({
                 onClick={handleLogout}
               >
                 <LogOut className="w-4 h-4" />
-                <span>Logout</span>
+                <span>로그아웃</span>
               </Button>
             </div>
           </PopoverContent>
@@ -255,12 +255,12 @@ export function Sidebar({
                 {theme === "dark" ? (
                   <>
                     <Sun className="w-4 h-4" />
-                    <span>Light Mode</span>
+                    <span>라이트모드</span>
                   </>
                 ) : (
                   <>
                     <Moon className="w-4 h-4" />
-                    <span>Dark Mode</span>
+                    <span>다크모드</span>
                   </>
                 )}
               </Button>
@@ -270,7 +270,7 @@ export function Sidebar({
                 onClick={handleLogout}
               >
                 <LogOut className="w-4 h-4" />
-                <span>Logout</span>
+                <span>로그아웃</span>
               </Button>
             </div>
           </PopoverContent>
