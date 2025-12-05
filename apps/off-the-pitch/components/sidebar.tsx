@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search, Heart, Sun, Moon, LogOut } from "lucide-react";
 import { CgDetailsMore } from "react-icons/cg";
@@ -12,7 +11,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase-client";
+import { useLogout } from "@/hooks/use-logout";
 
 interface SidebarProps {
   activeMenu: "home" | "search" | "favorites" | null;
@@ -27,22 +26,7 @@ export function Sidebar({
   theme = "dark",
   onThemeChange,
 }: SidebarProps) {
-  const router = useRouter();
-  const supabase = createClient();
-
-  const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("Logout error:", error);
-        return;
-      }
-      router.push("/login");
-      router.refresh();
-    } catch (error) {
-      console.error("Unexpected logout error:", error);
-    }
-  };
+  const { handleLogout } = useLogout();
 
   return (
     <>
