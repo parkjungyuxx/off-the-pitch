@@ -88,15 +88,16 @@ export default function HomePage() {
                 >
                   <div
                     className={cn(
-                      "flex items-center justify-center size-7 rounded-full border bg-card hover:border-white/40 transition-colors",
+                      "flex items-center justify-center size-7 rounded-full border hover:border-white/40 transition-colors",
                       theme === "light"
-                        ? "border-gray-300"
-                        : "border-[rgb(57,57,57)]"
+                        ? "border-gray-300 bg-card"
+                        : "border-[rgb(57,57,57)] bg-card"
                     )}
                   >
                     <IoIosArrowDown
                       className={cn(
-                        "size-4 text-white transition-transform",
+                        "size-4 transition-transform",
+                        theme === "light" ? "text-gray-700" : "text-white",
                         showLeagueSelector && "rotate-180"
                       )}
                     />
