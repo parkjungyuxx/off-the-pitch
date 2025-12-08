@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useOptimistic } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-client";
 import {
@@ -19,7 +19,6 @@ export interface JournalistInfo {
 }
 
 interface UseFavoritesReturn {
-  // 상태
   followedJournalists: Set<string>;
   followedJournalistsList: JournalistInfo[];
   selectedJournalist: string | null;
@@ -32,21 +31,32 @@ interface UseFavoritesReturn {
   checkingAuth: boolean;
   virtualItems: VirtualItem[];
   totalHeight: number;
-  // 액션
   setSelectedJournalist: (handle: string | null) => void;
   toggleFavorite: (handle: string, journalistName: string) => Promise<void>;
   sentinelRef: React.RefObject<HTMLDivElement>;
   containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
-/**
- * 좋아요 페이지의 비즈니스 로직을 관리하는 훅
- */
 export function useFavorites(): UseFavoritesReturn {
   const router = useRouter();
   const supabase = createClient();
-  const [followedJournalists, setFollowedJournalists] = useState<Set<string>>(
-    new Set()
+  const [baseFollowedJournalists, setBaseFollowedJournalists] = useState<
+    Set<string>
+  >(new Set());
+  const [followedJournalists, addOptimisticFollow] = useOptimistic(
+    baseFollowedJournalists,
+    (
+      currentState,
+      optimisticValue: { handle: string; isFollowing: boolean }
+    ) => {
+      const next = new Set(currentState);
+      if (optimisticValue.isFollowing) {
+        next.add(optimisticValue.handle);
+      } else {
+        next.delete(optimisticValue.handle);
+      }
+      return next;
+    }
   );
   const [followedJournalistsList, setFollowedJournalistsList] = useState<
     JournalistInfo[]
@@ -64,7 +74,6 @@ export function useFavorites(): UseFavoritesReturn {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [journalistUsernames, setJournalistUsernames] = useState<string[]>([]);
 
-  // 인증 체크
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -85,7 +94,6 @@ export function useFavorites(): UseFavoritesReturn {
     checkSession();
   }, [router, supabase]);
 
-  // 초기 데이터 로드
   useEffect(() => {
     const loadInitialData = async () => {
       try {
@@ -94,7 +102,7 @@ export function useFavorites(): UseFavoritesReturn {
 
         const followedData = await getFollowedJournalists();
         if (!followedData.data || followedData.data.length === 0) {
-          setFollowedJournalists(new Set());
+          setBaseFollowedJournalists(new Set());
           setTweets([]);
           setFollowedJournalistsList([]);
           setHasMore(false);
@@ -117,7 +125,6 @@ export function useFavorites(): UseFavoritesReturn {
         setNextCursor(tweetsData.pagination.nextCursor);
         setHasMore(tweetsData.pagination.hasMore);
 
-        // 기자 정보 맵 생성
         const journalistMap = new Map<string, JournalistInfo>();
 
         followedData.data.forEach((f) => {
@@ -136,7 +143,7 @@ export function useFavorites(): UseFavoritesReturn {
         });
 
         setFollowedJournalistsList(Array.from(journalistMap.values()));
-        setFollowedJournalists(
+        setBaseFollowedJournalists(
           new Set(followedData.data.map((f) => f.journalist_handle))
         );
       } catch (err) {
@@ -152,7 +159,6 @@ export function useFavorites(): UseFavoritesReturn {
     }
   }, [checkingAuth]);
 
-  // 더 많은 트윗 가져오기
   const fetchMoreTweets = async () => {
     if (
       isLoadingMore ||
@@ -186,7 +192,6 @@ export function useFavorites(): UseFavoritesReturn {
     }
   };
 
-  // 무한 스크롤 설정
   const { sentinelRef } = useInfiniteScroll({
     loadMore: fetchMoreTweets,
     hasMore,
@@ -194,7 +199,6 @@ export function useFavorites(): UseFavoritesReturn {
     threshold: 200,
   });
 
-  // 선택된 기자로 트윗 필터링
   const filteredTweets = useMemo(() => {
     if (!selectedJournalist) {
       return tweets;
@@ -202,7 +206,6 @@ export function useFavorites(): UseFavoritesReturn {
     return tweets.filter((t) => `@${t.author_username}` === selectedJournalist);
   }, [tweets, selectedJournalist]);
 
-  // 가상화 리스트 설정
   const SPACING = 16;
   const DEFAULT_ITEM_HEIGHT = 200;
 
@@ -216,36 +219,27 @@ export function useFavorites(): UseFavoritesReturn {
     overscan: 5,
   });
 
-  // 팔로우/언팔로우 토글
   const toggleFavorite = async (handle: string, journalistName: string) => {
     const isFollowing = followedJournalists.has(handle);
+    const newFollowingState = !isFollowing;
 
-    // 낙관적 업데이트
-    setFollowedJournalists((prev) => {
-      const next = new Set(prev);
-      if (isFollowing) {
-        next.delete(handle);
-      } else {
-        next.add(handle);
-      }
-      return next;
-    });
+    addOptimisticFollow({ handle, isFollowing: newFollowingState });
 
     const result = isFollowing
       ? await unfollowJournalist(handle)
       : await followJournalist(handle, journalistName);
 
-    if (!result.success) {
-      // 실패 시 롤백
-      setFollowedJournalists((prev) => {
+    if (result.success) {
+      setBaseFollowedJournalists((prev) => {
         const next = new Set(prev);
-        if (isFollowing) {
+        if (newFollowingState) {
           next.add(handle);
         } else {
           next.delete(handle);
         }
         return next;
       });
+    } else {
       console.error("Toggle follow error:", result.error);
       setError(`팔로우 실패: ${result.error}`);
       setTimeout(() => setError(null), 3000);
@@ -271,4 +265,3 @@ export function useFavorites(): UseFavoritesReturn {
     containerRef,
   };
 }
-

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useOptimistic } from "react";
 import { fetchTweets, type Tweet } from "@/lib/tweets";
 import {
   fetchJournalistProfile,
@@ -46,9 +46,6 @@ interface UseJournalistProfileReturn {
   toggleFavorite: () => Promise<void>;
 }
 
-/**
- * 기자 상세 페이지의 비즈니스 로직을 관리하는 훅
- */
 export function useJournalistProfile(
   username: string
 ): UseJournalistProfileReturn {
@@ -56,10 +53,13 @@ export function useJournalistProfile(
   const [profile, setProfile] = useState<JournalistProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isFollowing, setIsFollowing] = useState<boolean>(false);
+  const [baseIsFollowing, setBaseIsFollowing] = useState<boolean>(false);
+  const [isFollowing, addOptimisticFollow] = useOptimistic(
+    baseIsFollowing,
+    (currentState, optimisticValue: boolean) => optimisticValue
+  );
   const [avatarError, setAvatarError] = useState<boolean>(false);
 
-  // 기자 데이터 가져오기
   useEffect(() => {
     const loadJournalistData = async () => {
       try {
@@ -77,19 +77,17 @@ export function useJournalistProfile(
 
         setTweets(tweetsData.items);
 
-        // 팔로우 상태 확인
         if (followedData.data) {
           const handle = `@${username}`;
-          setIsFollowing(
-            followedData.data.some((f) => f.journalist_handle === handle)
+          const following = followedData.data.some(
+            (f) => f.journalist_handle === handle
           );
+          setBaseIsFollowing(following);
         }
 
-        // 프로필 데이터 설정
         if (profileData) {
           setProfile(profileData);
         } else if (tweetsData.items.length > 0) {
-          // 프로필이 없지만 트윗이 있는 경우 트윗에서 프로필 정보 추출
           const firstTweet = tweetsData.items[0];
           const displayName =
             (firstTweet.author_name?.split("@")[0]?.trim() as string) ||
@@ -117,12 +115,10 @@ export function useJournalistProfile(
     loadJournalistData();
   }, [username]);
 
-  // 프로필 이미지 변경 시 아바타 에러 리셋
   useEffect(() => {
     setAvatarError(false);
   }, [profile?.profileImage, username]);
 
-  // 표시용 프로필 데이터 변환
   const displayProfile = useMemo<DisplayProfile>(() => {
     if (!profile) {
       return {
@@ -141,7 +137,6 @@ export function useJournalistProfile(
     };
   }, [profile, username]);
 
-  // 트윗 데이터 매핑
   const mappedTweets = useMemo<MappedTweet[]>(() => {
     return tweets.map((t) => ({
       tweetId: t.tweet_id,
@@ -160,21 +155,21 @@ export function useJournalistProfile(
     }));
   }, [tweets]);
 
-  // 팔로우/언팔로우 토글
   const toggleFavorite = async () => {
     if (!profile) return;
 
-    // 낙관적 업데이트
-    setIsFollowing((prev) => !prev);
-
     const handle = `@${username}`;
+    const newFollowingState = !isFollowing;
+
+    addOptimisticFollow(newFollowingState);
+
     const result = isFollowing
       ? await unfollowJournalist(handle)
       : await followJournalist(handle, profile.name);
 
-    if (!result.success) {
-      // 실패 시 롤백
-      setIsFollowing((prev) => !prev);
+    if (result.success) {
+      setBaseIsFollowing(newFollowingState);
+    } else {
       console.error("Toggle follow error:", result.error);
       setError(`팔로우 실패: ${result.error}`);
       setTimeout(() => setError(null), 3000);
@@ -193,4 +188,3 @@ export function useJournalistProfile(
     toggleFavorite,
   };
 }
-
