@@ -57,7 +57,8 @@ export async function GET(request: NextRequest) {
       .gte("created_at", since)
       .lte("created_at", until)
       .order("created_at", { ascending: false })
-      .limit(50);
+      .limit(50)
+      .returns<Array<{ tweet_text: string; created_at: string }>>();
 
     if (tweetsError) {
       console.error("Error fetching tweets:", tweetsError);
@@ -75,7 +76,7 @@ export async function GET(request: NextRequest) {
     }
 
     const translatedTweets = await Promise.all(
-      tweets.map(async (tweet) => {
+      tweets.map(async (tweet: { tweet_text: string; created_at: string }) => {
         try {
           const isKorean = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(tweet.tweet_text);
           if (isKorean) {
