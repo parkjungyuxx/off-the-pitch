@@ -215,7 +215,8 @@ export function useFavorites(): UseFavoritesReturn {
     itemSpacing: SPACING,
     measureItemHeight: true,
     scrollTarget: "window",
-    containerRef: containerRef as React.RefObject<HTMLElement | null>,
+    containerRef:
+      containerRef as unknown as React.RefObject<HTMLElement | null>,
     overscan: 5,
   });
 
@@ -261,7 +262,7 @@ export function useFavorites(): UseFavoritesReturn {
     totalHeight,
     setSelectedJournalist,
     toggleFavorite,
-    sentinelRef,
+    sentinelRef: sentinelRef as React.RefObject<HTMLDivElement>,
     containerRef,
   };
 }

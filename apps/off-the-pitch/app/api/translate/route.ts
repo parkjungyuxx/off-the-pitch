@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     const systemPrompt = getTranslationPrompt({ targetLanguage });
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // 비용 효율적인 모델 사용 (gpt-4o로 변경 가능)
+      model: "gpt-4o-mini", 
       messages: [
         {
           role: "system",
@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
           content: text,
         },
       ],
-      temperature: 0.3, // 일관된 번역을 위해 낮은 temperature 설정
-      max_tokens: 1000, // 필요에 따라 조정
+      temperature: 0.3, 
+      max_tokens: 1000, 
     });
 
     const translatedText = completion.choices[0]?.message?.content;
