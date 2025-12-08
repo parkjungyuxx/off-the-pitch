@@ -15,7 +15,6 @@ export async function followJournalist(
   try {
     const supabase = createClient();
     
-    // 현재 사용자 세션 확인
     const {
       data: { session },
     } = await supabase.auth.getSession();

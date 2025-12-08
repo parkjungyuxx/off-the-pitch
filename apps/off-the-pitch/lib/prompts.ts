@@ -1,14 +1,7 @@
-/**
- * 번역 프롬프트 템플릿
- */
-
 export interface TranslationPromptOptions {
   targetLanguage: "ko" | "en";
 }
 
-/**
- * 번역용 시스템 프롬프트 생성
- */
 export function getTranslationPrompt({
   targetLanguage,
 }: TranslationPromptOptions): string {
@@ -26,9 +19,6 @@ Guidelines:
 - If the text is already in ${targetLangName}, return it as is`;
 }
 
-/**
- * 이적시장 뉴스 요약 프롬프트 생성
- */
 export function getSummaryPrompt(tweets: string[]): string {
   const tweetsText = tweets.join("\n\n---\n\n");
 
