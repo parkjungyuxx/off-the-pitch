@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useOptimistic } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-client";
 import { fetchTweets, type Tweet } from "@/lib/tweets";
@@ -21,8 +21,23 @@ import { filterTweetsByLeague } from "@/lib/league-filter";
 export function useHomePage() {
   const router = useRouter();
   const supabase = createClient();
-  const [followedJournalists, setFollowedJournalists] = useState<Set<string>>(
-    new Set()
+  const [baseFollowedJournalists, setBaseFollowedJournalists] = useState<
+    Set<string>
+  >(new Set());
+  const [followedJournalists, addOptimisticFollow] = useOptimistic(
+    baseFollowedJournalists,
+    (
+      currentState,
+      optimisticValue: { handle: string; isFollowing: boolean }
+    ) => {
+      const next = new Set(currentState);
+      if (optimisticValue.isFollowing) {
+        next.add(optimisticValue.handle);
+      } else {
+        next.delete(optimisticValue.handle);
+      }
+      return next;
+    }
   );
   const [selectedLeague, setSelectedLeague] = useState<string | null>(null);
   const [tweets, setTweets] = useState<Tweet[]>([]);
@@ -117,7 +132,7 @@ export function useHomePage() {
           const handles = new Set(
             followedData.data.map((f) => f.journalist_handle)
           );
-          setFollowedJournalists(handles);
+          setBaseFollowedJournalists(handles);
         }
       } catch (error) {
         console.error("Load initial data error:", error);
@@ -166,31 +181,25 @@ export function useHomePage() {
 
   const toggleFavorite = async (handle: string, journalistName: string) => {
     const isFollowing = followedJournalists.has(handle);
+    const newFollowingState = !isFollowing;
 
-    setFollowedJournalists((prev) => {
-      const next = new Set(prev);
-      if (isFollowing) {
-        next.delete(handle);
-      } else {
-        next.add(handle);
-      }
-      return next;
-    });
+    addOptimisticFollow({ handle, isFollowing: newFollowingState });
 
     const result = isFollowing
       ? await unfollowJournalist(handle)
       : await followJournalist(handle, journalistName);
 
-    if (!result.success) {
-      setFollowedJournalists((prev) => {
+    if (result.success) {
+      setBaseFollowedJournalists((prev) => {
         const next = new Set(prev);
-        if (isFollowing) {
+        if (newFollowingState) {
           next.add(handle);
         } else {
           next.delete(handle);
         }
         return next;
       });
+    } else {
       console.error("Toggle follow error:", result.error);
       setError(`팔로우 실패: ${result.error}`);
       setTimeout(() => setError(null), 3000);
@@ -233,4 +242,3 @@ export function useHomePage() {
     sentinelRef,
   };
 }
-

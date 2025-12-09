@@ -51,13 +51,18 @@ export async function GET(request: NextRequest) {
     const until = now.toISOString();
 
     const supabase = getSupabaseClient();
-    const { data: tweets, error: tweetsError } = await supabase
+    const { data, error: tweetsError } = await supabase
       .from("tweets")
       .select("tweet_text, created_at")
       .gte("created_at", since)
       .lte("created_at", until)
       .order("created_at", { ascending: false })
       .limit(50);
+
+    const tweets = (data ?? []) as Array<{
+      tweet_text: string;
+      created_at: string;
+    }>;
 
     if (tweetsError) {
       console.error("Error fetching tweets:", tweetsError);

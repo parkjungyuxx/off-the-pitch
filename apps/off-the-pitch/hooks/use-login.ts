@@ -10,9 +10,7 @@ interface UseLoginReturn {
   handleSocialLogin: (provider: SocialProvider) => Promise<void>;
 }
 
-/**
- * 로그인 페이지의 비즈니스 로직을 관리하는 훅
- */
+
 export function useLogin(): UseLoginReturn {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -24,7 +22,6 @@ export function useLogin(): UseLoginReturn {
   });
   const supabase = createClient();
 
-  // 세션 체크 및 자동 리다이렉트
   useEffect(() => {
     const checkSession = async () => {
       const {
@@ -36,7 +33,6 @@ export function useLogin(): UseLoginReturn {
     };
     checkSession();
 
-    // URL에서 에러 파라미터 제거
     if (errorParam) {
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.delete("error");
@@ -44,9 +40,6 @@ export function useLogin(): UseLoginReturn {
     }
   }, [router, supabase, errorParam]);
 
-  /**
-   * 소셜 로그인 처리
-   */
   const handleSocialLogin = async (provider: SocialProvider) => {
     try {
       setLoading(true);

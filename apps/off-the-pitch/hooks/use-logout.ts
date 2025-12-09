@@ -5,9 +5,6 @@ interface UseLogoutReturn {
   handleLogout: () => Promise<void>;
 }
 
-/**
- * 로그아웃 비즈니스 로직을 관리하는 훅
- */
 export function useLogout(): UseLogoutReturn {
   const router = useRouter();
   const supabase = createClient();

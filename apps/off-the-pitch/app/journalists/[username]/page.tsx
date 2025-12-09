@@ -94,13 +94,18 @@ export default function JournalistPage({ params }: JournalistPageProps) {
               >
                 <div
                   className={cn(
-                    "flex items-center justify-center size-6 rounded-full border bg-card",
+                    "flex items-center justify-center size-6 rounded-full border hover:border-white/40 transition-colors",
                     theme === "light"
-                      ? "border-gray-300"
-                      : "border-[rgb(57,57,57)]"
+                      ? "border-gray-300 bg-card"
+                      : "border-[rgb(57,57,57)] bg-card"
                   )}
                 >
-                  <IoIosArrowBack className="size-4 text-white" />
+                  <IoIosArrowBack
+                    className={cn(
+                      "size-4 transition-transform",
+                      theme === "light" ? "text-gray-700" : "text-white"
+                    )}
+                  />
                 </div>
               </button>
               <h1 className="text-3xl font-display font-bold tracking-wide text-balance">
