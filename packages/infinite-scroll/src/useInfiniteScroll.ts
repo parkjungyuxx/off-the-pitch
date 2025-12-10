@@ -1,4 +1,10 @@
 import { useRef, RefObject, useCallback, useEffect } from "react";
+import {
+  calculateRootMargin,
+  createObserverOptions,
+  createIntersectionCallback,
+  canSetupObserver,
+} from "./utils";
 
 /**
  * 무한 스크롤을 위한 옵션 타입
@@ -25,6 +31,8 @@ export interface UseInfiniteScrollOptions {
   threshold?: number;
   /**
    * 스크롤 방향
+   * - "down": 하단 스크롤 (리스트 하단에 도달 시 다음 페이지 로드)
+   * - "up": 상단 스크롤 (리스트 상단에 도달 시 이전 페이지 로드)
    * @default "down"
    */
   direction?: "up" | "down";
@@ -45,6 +53,8 @@ export interface UseInfiniteScrollOptions {
 export interface UseInfiniteScrollReturn {
   /**
    * 스크롤을 감지할 요소에 연결할 ref
+   * - direction이 "down"일 때: 리스트 하단에 배치
+   * - direction이 "up"일 때: 리스트 상단에 배치
    */
   sentinelRef: RefObject<HTMLDivElement | null>;
   /**
@@ -88,31 +98,27 @@ export function useInfiniteScroll(
 
   // Intersection Observer 설정
   useEffect(() => {
-    // 더 이상 불러올 데이터가 없거나 로딩 중이면 Observer를 설정하지 않음
-    if (!hasMore || isLoading) {
-      return;
-    }
-
     const sentinel = sentinelRef.current;
-    if (!sentinel) {
+
+    // Observer를 설정할 수 있는지 확인
+    if (!canSetupObserver(hasMore, isLoading, sentinel)) {
       return;
     }
 
     // Intersection Observer 옵션 설정
-    const options: IntersectionObserverInit = {
-      root: root || null,
-      rootMargin: `${threshold}px ${rootMargin}`,
-      threshold: 0,
-    };
+    const rootMarginValue = calculateRootMargin(
+      direction,
+      threshold,
+      rootMargin
+    );
+    const observerOptions = createObserverOptions(root, rootMarginValue);
+    const intersectionCallback = createIntersectionCallback(loadMore);
 
     // Intersection Observer 생성
-    observerRef.current = new IntersectionObserver((entries) => {
-      const [entry] = entries;
-      // sentinel이 화면에 보이면 loadMore 호출
-      if (entry.isIntersecting) {
-        loadMore();
-      }
-    }, options);
+    observerRef.current = new IntersectionObserver(
+      intersectionCallback,
+      observerOptions
+    );
 
     // sentinel 요소 관찰 시작
     observerRef.current.observe(sentinel);
@@ -123,7 +129,7 @@ export function useInfiniteScroll(
         observerRef.current.disconnect();
       }
     };
-  }, [hasMore, isLoading, loadMore, root, rootMargin, threshold]);
+  }, [hasMore, isLoading, loadMore, root, rootMargin, threshold, direction]);
 
   return {
     sentinelRef,
