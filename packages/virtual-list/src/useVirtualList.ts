@@ -170,6 +170,20 @@ export function useVirtualList(
   const rafIdRef = useRef<number | null>(null);
   const containerOffsetRef = useRef<number>(0); // 컨테이너의 초기 offset 저장
 
+  // requestAnimationFrame으로 스크롤 오프셋 업데이트 (성능 최적화)
+  const updateScrollOffsetWithRaf = useCallback((newScrollOffset: number) => {
+    // 이전 requestAnimationFrame 취소
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+    }
+
+    // requestAnimationFrame으로 다음 프레임에 업데이트
+    rafIdRef.current = requestAnimationFrame(() => {
+      setScrollOffset(newScrollOffset);
+      rafIdRef.current = null;
+    });
+  }, []);
+
   // scrollTarget에 따라 containerHeight 결정
   const containerHeight =
     scrollTarget === "window"
@@ -447,19 +461,9 @@ export function useVirtualList(
 
       const target = e.currentTarget;
       const newScrollOffset = target.scrollTop;
-
-      // 이전 requestAnimationFrame 취소
-      if (rafIdRef.current !== null) {
-        cancelAnimationFrame(rafIdRef.current);
-      }
-
-      // requestAnimationFrame으로 다음 프레임에 업데이트
-      rafIdRef.current = requestAnimationFrame(() => {
-        setScrollOffset(newScrollOffset);
-        rafIdRef.current = null;
-      });
+      updateScrollOffsetWithRaf(newScrollOffset);
     },
-    [scrollTarget]
+    [scrollTarget, updateScrollOffsetWithRaf]
   );
 
   // window 스크롤 이벤트 처리 (requestAnimationFrame으로 최적화)
@@ -491,16 +495,7 @@ export function useVirtualList(
         baseScrollOffset - containerOffsetRef.current
       );
 
-      // 이전 requestAnimationFrame 취소
-      if (rafIdRef.current !== null) {
-        cancelAnimationFrame(rafIdRef.current);
-      }
-
-      // requestAnimationFrame으로 다음 프레임에 업데이트
-      rafIdRef.current = requestAnimationFrame(() => {
-        setScrollOffset(newScrollOffset);
-        rafIdRef.current = null;
-      });
+      updateScrollOffsetWithRaf(newScrollOffset);
     };
 
     // 초기 컨테이너 offset 측정
@@ -526,7 +521,7 @@ export function useVirtualList(
         cancelAnimationFrame(rafIdRef.current);
       }
     };
-  }, [scrollTarget, containerRef]);
+  }, [scrollTarget, containerRef, updateScrollOffsetWithRaf]);
 
   // 컨테이너 스타일
   const containerStyle: CSSProperties = useMemo(() => {
