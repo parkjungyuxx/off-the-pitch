@@ -184,6 +184,11 @@ export function useVirtualList(
     });
   }, []);
 
+  // 컨테이너 ref 선택 헬퍼 함수 (containerRef 우선, 없으면 scrollElementRef 사용)
+  const getTargetElement = useCallback((): HTMLElement | null => {
+    return containerRef?.current || scrollElementRef.current;
+  }, [containerRef]);
+
   // scrollTarget에 따라 containerHeight 계산
   const containerHeight = useMemo(() => {
     if (scrollTarget === "window") {
@@ -206,12 +211,11 @@ export function useVirtualList(
   useEffect(() => {
     if (scrollTarget !== "container") return;
 
-    // containerRef가 있으면 그것을 사용, 없으면 scrollElementRef 사용
-    const targetRef = containerRef?.current || scrollElementRef.current;
+    const targetRef = getTargetElement();
     if (!targetRef) return;
 
     const updateHeight = () => {
-      const currentRef = containerRef?.current || scrollElementRef.current;
+      const currentRef = getTargetElement();
       const height = currentRef?.clientHeight ?? 0;
       if (height > 0) {
         setMeasuredHeight(height);
@@ -236,7 +240,7 @@ export function useVirtualList(
     return () => {
       resizeObserver.disconnect();
     };
-  }, [containerRef, scrollTarget]);
+  }, [scrollTarget, getTargetElement]);
 
   // window 모드일 때 window 크기 측정
   useIsomorphicLayoutEffect(() => {
@@ -482,13 +486,9 @@ export function useVirtualList(
 
     // 컨테이너의 초기 offset 측정 (한 번만)
     const updateContainerOffset = () => {
-      if (containerRef?.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const baseScrollOffset =
-          window.scrollY || document.documentElement.scrollTop;
-        containerOffsetRef.current = rect.top + baseScrollOffset;
-      } else if (scrollElementRef.current) {
-        const rect = scrollElementRef.current.getBoundingClientRect();
+      const targetElement = getTargetElement();
+      if (targetElement) {
+        const rect = targetElement.getBoundingClientRect();
         const baseScrollOffset =
           window.scrollY || document.documentElement.scrollTop;
         containerOffsetRef.current = rect.top + baseScrollOffset;
@@ -531,7 +531,7 @@ export function useVirtualList(
         cancelAnimationFrame(rafIdRef.current);
       }
     };
-  }, [scrollTarget, containerRef, updateScrollOffsetWithRaf]);
+  }, [scrollTarget, getTargetElement, updateScrollOffsetWithRaf]);
 
   // 컨테이너 스타일
   const containerStyle: CSSProperties = useMemo(() => {
