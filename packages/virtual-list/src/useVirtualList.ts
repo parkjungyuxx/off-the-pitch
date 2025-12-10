@@ -369,31 +369,6 @@ export function useVirtualList(
 
   // 아이템 높이 계산 함수 (itemHeights를 직접 참조)
   // 배열을 사용하므로 React가 변경을 자동으로 감지함
-  const itemPositions = useMemo(() => {
-    const getItemHeight = (index: number): number => {
-      // measureItemHeight가 활성화되고 해당 인덱스의 높이가 측정된 경우
-      if (
-        measureItemHeight &&
-        index < itemHeights.length &&
-        itemHeights[index] !== undefined
-      ) {
-        const measuredHeight = itemHeights[index]!;
-        return measuredHeight + itemSpacing;
-      }
-      // 그 외의 경우 기존 로직 사용
-      const baseHeight =
-        typeof itemHeight === "function" ? itemHeight(index) : itemHeight;
-      return baseHeight;
-    };
-
-    const positions: number[] = [0];
-    for (let i = 1; i < itemCount; i++) {
-      positions[i] = positions[i - 1] + getItemHeight(i - 1);
-    }
-    return positions;
-  }, [itemCount, itemHeight, itemHeights, measureItemHeight, itemSpacing]);
-
-  // getItemHeight 함수 (외부에서도 사용하기 위해)
   const getItemHeight = useCallback(
     (index: number): number => {
       // measureItemHeight가 활성화되고 해당 인덱스의 높이가 측정된 경우
@@ -412,6 +387,15 @@ export function useVirtualList(
     },
     [itemHeight, itemHeights, measureItemHeight, itemSpacing]
   );
+
+  // 아이템 위치 배열 계산
+  const itemPositions = useMemo(() => {
+    const positions: number[] = [0];
+    for (let i = 1; i < itemCount; i++) {
+      positions[i] = positions[i - 1] + getItemHeight(i - 1);
+    }
+    return positions;
+  }, [itemCount, getItemHeight]);
 
   // 전체 높이 계산
   const totalHeight = useMemo(() => {
