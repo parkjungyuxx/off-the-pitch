@@ -1,5 +1,10 @@
 import { useRef, RefObject, useCallback, useEffect } from "react";
-import { calculateRootMargin, createObserverOptions } from "./utils";
+import {
+  calculateRootMargin,
+  createObserverOptions,
+  createIntersectionCallback,
+  canSetupObserver,
+} from "./utils";
 
 /**
  * 무한 스크롤을 위한 옵션 타입
@@ -93,13 +98,10 @@ export function useInfiniteScroll(
 
   // Intersection Observer 설정
   useEffect(() => {
-    // 더 이상 불러올 데이터가 없거나 로딩 중이면 Observer를 설정하지 않음
-    if (!hasMore || isLoading) {
-      return;
-    }
-
     const sentinel = sentinelRef.current;
-    if (!sentinel) {
+
+    // Observer를 설정할 수 있는지 확인
+    if (!canSetupObserver(hasMore, isLoading, sentinel)) {
       return;
     }
 
@@ -110,15 +112,13 @@ export function useInfiniteScroll(
       rootMargin
     );
     const observerOptions = createObserverOptions(root, rootMarginValue);
+    const intersectionCallback = createIntersectionCallback(loadMore);
 
     // Intersection Observer 생성
-    observerRef.current = new IntersectionObserver((entries) => {
-      const [entry] = entries;
-      // sentinel이 화면에 보이면 loadMore 호출
-      if (entry.isIntersecting) {
-        loadMore();
-      }
-    }, observerOptions);
+    observerRef.current = new IntersectionObserver(
+      intersectionCallback,
+      observerOptions
+    );
 
     // sentinel 요소 관찰 시작
     observerRef.current.observe(sentinel);

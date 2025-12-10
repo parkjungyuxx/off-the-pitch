@@ -35,3 +35,37 @@ export function createObserverOptions(
     threshold: 0,
   };
 }
+
+/**
+ * IntersectionObserver 콜백 함수를 생성하는 함수
+ *
+ * @param loadMore - 데이터를 로드하는 함수
+ * @returns IntersectionObserver 콜백 함수
+ */
+export function createIntersectionCallback(
+  loadMore: () => void | Promise<void>
+) {
+  return (entries: IntersectionObserverEntry[]) => {
+    const [entry] = entries;
+    // sentinel이 화면에 보이면 loadMore 호출
+    if (entry.isIntersecting) {
+      loadMore();
+    }
+  };
+}
+
+/**
+ * Observer를 설정할 수 있는지 확인하는 함수
+ *
+ * @param hasMore - 더 이상 불러올 데이터가 있는지
+ * @param isLoading - 현재 로딩 중인지
+ * @param sentinel - sentinel 요소
+ * @returns Observer를 설정할 수 있으면 true
+ */
+export function canSetupObserver(
+  hasMore: boolean,
+  isLoading: boolean,
+  sentinel: HTMLElement | null
+): sentinel is HTMLElement {
+  return hasMore && !isLoading && sentinel !== null;
+}
