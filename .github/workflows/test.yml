@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: Run Tests
+    name: Run Tests - ${{ matrix.package }}
     runs-on: ubuntu-latest
 
     strategy:
@@ -35,8 +35,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Debug info
+        run: |
+          echo "Testing package: ${{ matrix.package }}"
+          pnpm --filter ${{ matrix.package }} list --depth=0 || true
+
       - name: Run tests
         run: pnpm --filter ${{ matrix.package }} test --run
+        continue-on-error: false
 
       - name: Upload coverage reports
         if: always()
@@ -45,4 +51,5 @@ jobs:
           name: coverage-${{ matrix.package }}
           path: |
             packages/*/coverage
+          if-no-files-found: ignore
           retention-days: 7
