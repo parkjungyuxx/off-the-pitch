@@ -25,6 +25,8 @@ export interface UseInfiniteScrollOptions {
   threshold?: number;
   /**
    * 스크롤 방향
+   * - "down": 하단 스크롤 (리스트 하단에 도달 시 다음 페이지 로드)
+   * - "up": 상단 스크롤 (리스트 상단에 도달 시 이전 페이지 로드)
    * @default "down"
    */
   direction?: "up" | "down";
@@ -45,6 +47,8 @@ export interface UseInfiniteScrollOptions {
 export interface UseInfiniteScrollReturn {
   /**
    * 스크롤을 감지할 요소에 연결할 ref
+   * - direction이 "down"일 때: 리스트 하단에 배치
+   * - direction이 "up"일 때: 리스트 상단에 배치
    */
   sentinelRef: RefObject<HTMLDivElement | null>;
   /**
@@ -99,9 +103,16 @@ export function useInfiniteScroll(
     }
 
     // Intersection Observer 옵션 설정
+    // direction에 따라 rootMargin을 상단/하단에 적용
+    // rootMargin 형식: "top right bottom left"
+    const rootMarginValue =
+      direction === "up"
+        ? `${threshold}px ${rootMargin} 0px ${rootMargin}` // 상단에 threshold
+        : `0px ${rootMargin} ${threshold}px ${rootMargin}`; // 하단에 threshold
+
     const options: IntersectionObserverInit = {
       root: root || null,
-      rootMargin: `${threshold}px ${rootMargin}`,
+      rootMargin: rootMarginValue,
       threshold: 0,
     };
 
@@ -123,7 +134,7 @@ export function useInfiniteScroll(
         observerRef.current.disconnect();
       }
     };
-  }, [hasMore, isLoading, loadMore, root, rootMargin, threshold]);
+  }, [hasMore, isLoading, loadMore, root, rootMargin, threshold, direction]);
 
   return {
     sentinelRef,
