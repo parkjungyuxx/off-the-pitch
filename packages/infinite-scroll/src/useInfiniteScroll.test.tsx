@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor, render } from "@testing-library/react";
 import { useInfiniteScroll } from "./useInfiniteScroll";
+import { createElement } from "react";
 
 // IntersectionObserver 모킹
 const mockObserve = vi.fn();
@@ -8,15 +9,20 @@ const mockDisconnect = vi.fn();
 const mockUnobserve = vi.fn();
 
 beforeEach(() => {
-  window.IntersectionObserver = vi.fn().mockImplementation((callback) => {
-    return {
-      observe: mockObserve,
-      disconnect: mockDisconnect,
-      unobserve: mockUnobserve,
-      // 테스트에서 수동으로 콜백 호출할 수 있도록 저장
-      _callback: callback,
-    };
-  }) as unknown as typeof IntersectionObserver;
+  // IntersectionObserver를 클래스로 모킹
+  class MockIntersectionObserver {
+    observe = mockObserve;
+    disconnect = mockDisconnect;
+    unobserve = mockUnobserve;
+    _callback: IntersectionObserverCallback;
+
+    constructor(callback: IntersectionObserverCallback) {
+      this._callback = callback;
+    }
+  }
+
+  window.IntersectionObserver =
+    MockIntersectionObserver as unknown as typeof IntersectionObserver;
 });
 
 afterEach(() => {
@@ -39,11 +45,14 @@ describe("useInfiniteScroll", () => {
 
   it("기본 옵션으로 IntersectionObserver를 생성해야 함", async () => {
     const loadMoreFn = vi.fn();
-    renderHook(() =>
-      useInfiniteScroll({
+    const TestComponent = () => {
+      const { sentinelRef } = useInfiniteScroll({
         loadMore: loadMoreFn,
-      })
-    );
+      });
+      return createElement("div", { ref: sentinelRef });
+    };
+
+    render(createElement(TestComponent));
 
     await waitFor(() => {
       expect(window.IntersectionObserver).toHaveBeenCalled();
@@ -124,11 +133,14 @@ describe("useInfiniteScroll", () => {
 
   it("컴포넌트 언마운트 시 Observer가 disconnect되어야 함", () => {
     const loadMoreFn = vi.fn();
-    const { unmount } = renderHook(() =>
-      useInfiniteScroll({
+    const TestComponent = () => {
+      const { sentinelRef } = useInfiniteScroll({
         loadMore: loadMoreFn,
-      })
-    );
+      });
+      return createElement("div", { ref: sentinelRef });
+    };
+
+    const { unmount } = render(createElement(TestComponent));
 
     unmount();
 
@@ -137,13 +149,16 @@ describe("useInfiniteScroll", () => {
 
   it("direction 옵션이 제대로 전달되어야 함", async () => {
     const loadMoreFn = vi.fn();
-    renderHook(() =>
-      useInfiniteScroll({
+    const TestComponent = () => {
+      const { sentinelRef } = useInfiniteScroll({
         loadMore: loadMoreFn,
         direction: "up",
         threshold: 200,
-      })
-    );
+      });
+      return createElement("div", { ref: sentinelRef });
+    };
+
+    render(createElement(TestComponent));
 
     await waitFor(() => {
       expect(window.IntersectionObserver).toHaveBeenCalled();
@@ -159,12 +174,15 @@ describe("useInfiniteScroll", () => {
   it("root 옵션이 제대로 전달되어야 함", async () => {
     const loadMoreFn = vi.fn();
     const rootElement = document.createElement("div");
-    renderHook(() =>
-      useInfiniteScroll({
+    const TestComponent = () => {
+      const { sentinelRef } = useInfiniteScroll({
         loadMore: loadMoreFn,
         root: rootElement,
-      })
-    );
+      });
+      return createElement("div", { ref: sentinelRef });
+    };
+
+    render(createElement(TestComponent));
 
     await waitFor(() => {
       expect(window.IntersectionObserver).toHaveBeenCalled();
