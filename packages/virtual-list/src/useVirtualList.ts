@@ -548,8 +548,11 @@ export function useVirtualList(
     };
   }, [containerHeight, containerRef, scrollTarget]);
 
-  // 외부 scrollOffset 변경 감지
+  // 외부 scrollOffset 변경 감지 (외부에서 scrollOffset prop이 변경되면 내부 state 업데이트)
+  // scrollOffset을 의존성에 포함하지 않음: setScrollOffset 호출 시 scrollOffset이 변경되지만,
+  // 이는 initialScrollOffset 변경에 대한 반응이므로 무한 루프를 방지하기 위해 제외
   useEffect(() => {
+    // initialScrollOffset이 변경되었고, 현재 scrollOffset과 다르면 업데이트
     if (initialScrollOffset !== scrollOffset) {
       setScrollOffset(initialScrollOffset);
     }
