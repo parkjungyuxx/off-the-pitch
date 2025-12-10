@@ -271,14 +271,28 @@ export function useVirtualList(
     [updateItemHeight]
   );
 
-  // 아이템 높이 자동 측정 (measureItemHeight가 true인 경우)
-  useEffect(() => {
-    if (!measureItemHeight) return;
+  // 아이템 ResizeObserver 생성 함수
+  const createItemResizeObserver = useCallback(
+    (index: number) => {
+      return new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const element = entry.target as HTMLElement;
+          const height = element.offsetHeight || entry.contentRect.height;
+          updateItemHeight(index, height);
+        }
+      });
+    },
+    [updateItemHeight]
+  );
 
-    const observers: ResizeObserver[] = [];
-    const observedElements = new Set<HTMLElement>();
-
-    itemRefsMap.current.forEach((element, index) => {
+  // 아이템 Observer 설정 함수 (즉시 측정 + ResizeObserver 설정)
+  const setupItemObserver = useCallback(
+    (
+      element: HTMLElement,
+      index: number,
+      observers: ResizeObserver[],
+      observedElements: Set<HTMLElement>
+    ) => {
       if (!element || observedElements.has(element)) return;
 
       observedElements.add(element);
@@ -286,36 +300,30 @@ export function useVirtualList(
       // 즉시 높이 측정
       measureItemHeightAtIndex(index, element);
 
-      const observer = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          const element = entry.target as HTMLElement;
-          const height = element.offsetHeight || entry.contentRect.height;
-          updateItemHeight(index, height);
-        }
-      });
-
+      // ResizeObserver 설정
+      const observer = createItemResizeObserver(index);
       observer.observe(element);
       observers.push(observer);
+    },
+    [measureItemHeightAtIndex, createItemResizeObserver]
+  );
+
+  // 아이템 높이 자동 측정 (measureItemHeight가 true인 경우)
+  useEffect(() => {
+    if (!measureItemHeight) return;
+
+    const observers: ResizeObserver[] = [];
+    const observedElements = new Set<HTMLElement>();
+
+    // 초기 요소들에 대해 Observer 설정
+    itemRefsMap.current.forEach((element, index) => {
+      setupItemObserver(element, index, observers, observedElements);
     });
 
     // 약간의 지연 후 새로 추가된 요소도 측정
     const timeoutId = setTimeout(() => {
       itemRefsMap.current.forEach((element, index) => {
-        if (!element || observedElements.has(element)) return;
-
-        observedElements.add(element);
-        measureItemHeightAtIndex(index, element);
-
-        const observer = new ResizeObserver((entries) => {
-          for (const entry of entries) {
-            const element = entry.target as HTMLElement;
-            const height = element.offsetHeight || entry.contentRect.height;
-            updateItemHeight(index, height);
-          }
-        });
-
-        observer.observe(element);
-        observers.push(observer);
+        setupItemObserver(element, index, observers, observedElements);
       });
     }, 100);
 
@@ -323,12 +331,7 @@ export function useVirtualList(
       clearTimeout(timeoutId);
       observers.forEach((observer) => observer.disconnect());
     };
-  }, [
-    measureItemHeight,
-    itemCount,
-    measureItemHeightAtIndex,
-    updateItemHeight,
-  ]);
+  }, [measureItemHeight, itemCount, setupItemObserver]);
 
   // 아이템 ref 콜백 생성 함수
   const createItemRef = useCallback(
