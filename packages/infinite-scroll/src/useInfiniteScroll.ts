@@ -1,4 +1,5 @@
 import { useRef, RefObject, useCallback, useEffect } from "react";
+import { calculateRootMargin, createObserverOptions } from "./utils";
 
 /**
  * 무한 스크롤을 위한 옵션 타입
@@ -103,18 +104,12 @@ export function useInfiniteScroll(
     }
 
     // Intersection Observer 옵션 설정
-    // direction에 따라 rootMargin을 상단/하단에 적용
-    // rootMargin 형식: "top right bottom left"
-    const rootMarginValue =
-      direction === "up"
-        ? `${threshold}px ${rootMargin} 0px ${rootMargin}` // 상단에 threshold
-        : `0px ${rootMargin} ${threshold}px ${rootMargin}`; // 하단에 threshold
-
-    const options: IntersectionObserverInit = {
-      root: root || null,
-      rootMargin: rootMarginValue,
-      threshold: 0,
-    };
+    const rootMarginValue = calculateRootMargin(
+      direction,
+      threshold,
+      rootMargin
+    );
+    const observerOptions = createObserverOptions(root, rootMarginValue);
 
     // Intersection Observer 생성
     observerRef.current = new IntersectionObserver((entries) => {
@@ -123,7 +118,7 @@ export function useInfiniteScroll(
       if (entry.isIntersecting) {
         loadMore();
       }
-    }, options);
+    }, observerOptions);
 
     // sentinel 요소 관찰 시작
     observerRef.current.observe(sentinel);
