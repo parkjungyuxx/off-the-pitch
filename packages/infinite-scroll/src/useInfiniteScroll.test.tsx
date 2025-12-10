@@ -7,6 +7,7 @@ import { createElement } from "react";
 const mockObserve = vi.fn();
 const mockDisconnect = vi.fn();
 const mockUnobserve = vi.fn();
+const mockIntersectionObserverConstructor = vi.fn();
 
 beforeEach(() => {
   // IntersectionObserver를 클래스로 모킹
@@ -17,6 +18,7 @@ beforeEach(() => {
     _callback: IntersectionObserverCallback;
 
     constructor(callback: IntersectionObserverCallback) {
+      mockIntersectionObserverConstructor(callback);
       this._callback = callback;
     }
   }
@@ -27,6 +29,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.clearAllMocks();
+  mockIntersectionObserverConstructor.mockClear();
 });
 
 describe("useInfiniteScroll", () => {
@@ -55,7 +58,7 @@ describe("useInfiniteScroll", () => {
     render(createElement(TestComponent));
 
     await waitFor(() => {
-      expect(window.IntersectionObserver).toHaveBeenCalled();
+      expect(mockIntersectionObserverConstructor).toHaveBeenCalled();
     });
 
     expect(mockObserve).toHaveBeenCalled();
@@ -98,7 +101,7 @@ describe("useInfiniteScroll", () => {
       })
     );
 
-    await result.current.loadMore();
+    await (result.current.loadMore() as unknown as Promise<void>);
 
     expect(loadMoreFn).toHaveBeenCalledTimes(1);
   });
@@ -112,7 +115,7 @@ describe("useInfiniteScroll", () => {
       })
     );
 
-    await result.current.loadMore();
+    await (result.current.loadMore() as unknown as Promise<void>);
 
     expect(loadMoreFn).not.toHaveBeenCalled();
   });
@@ -126,7 +129,7 @@ describe("useInfiniteScroll", () => {
       })
     );
 
-    await result.current.loadMore();
+    await (result.current.loadMore() as unknown as Promise<void>);
 
     expect(loadMoreFn).not.toHaveBeenCalled();
   });
@@ -161,14 +164,14 @@ describe("useInfiniteScroll", () => {
     render(createElement(TestComponent));
 
     await waitFor(() => {
-      expect(window.IntersectionObserver).toHaveBeenCalled();
+      expect(mockIntersectionObserverConstructor).toHaveBeenCalled();
     });
 
-    // IntersectionObserver 생성 시 옵션이 전달되었는지 확인
-    const observerCall = (
-      window.IntersectionObserver as unknown as ReturnType<typeof vi.fn>
-    ).mock.calls[0];
-    expect(observerCall).toBeDefined();
+    // IntersectionObserver가 생성되었는지 확인
+    expect(
+      mockIntersectionObserverConstructor.mock.calls.length
+    ).toBeGreaterThan(0);
+    expect(mockObserve).toHaveBeenCalled();
   });
 
   it("root 옵션이 제대로 전달되어야 함", async () => {
@@ -185,12 +188,13 @@ describe("useInfiniteScroll", () => {
     render(createElement(TestComponent));
 
     await waitFor(() => {
-      expect(window.IntersectionObserver).toHaveBeenCalled();
+      expect(mockIntersectionObserverConstructor).toHaveBeenCalled();
     });
 
-    const observerCall = (
-      window.IntersectionObserver as unknown as ReturnType<typeof vi.fn>
-    ).mock.calls[0];
-    expect(observerCall).toBeDefined();
+    // IntersectionObserver가 생성되었는지 확인
+    expect(
+      mockIntersectionObserverConstructor.mock.calls.length
+    ).toBeGreaterThan(0);
+    expect(mockObserve).toHaveBeenCalled();
   });
 });
