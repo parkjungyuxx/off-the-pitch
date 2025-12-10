@@ -9,6 +9,7 @@ import {
   type CSSProperties,
   type UIEvent,
 } from "react";
+import { findVisibleRange, createVirtualItems } from "./utils";
 
 const useIsomorphicLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
@@ -358,7 +359,6 @@ export function useVirtualList(
           });
         }
       } else {
-        const hadElement = itemRefsMap.current.has(index);
         itemRefsMap.current.delete(index);
         // 요소 삭제 시 높이도 삭제하지 않음 (이전 높이를 유지하여 안정성 확보)
         // 높이는 ResizeObserver가 자동으로 업데이트하거나, 새 요소가 설정될 때 업데이트됨
@@ -427,44 +427,25 @@ export function useVirtualList(
     const start = scrollOffset;
     const end = scrollOffset + containerHeight;
 
-    // 이진 탐색으로 시작 인덱스 찾기
-    let startIndex = 0;
-    let endIndex = itemCount - 1;
-
-    while (startIndex <= endIndex) {
-      const mid = Math.floor((startIndex + endIndex) / 2);
-      const itemStart = itemPositions[mid];
-      const itemEnd = itemStart + getItemHeight(mid);
-
-      if (itemEnd < start) {
-        startIndex = mid + 1;
-      } else if (itemStart > end) {
-        endIndex = mid - 1;
-      } else {
-        startIndex = mid;
-        break;
-      }
-    }
-
-    // 오버스캔 적용
-    const visibleStart = Math.max(0, startIndex - overscan);
-    const visibleEnd = Math.min(itemCount - 1, endIndex + overscan);
+    // 이진 탐색으로 보이는 범위 찾기
+    const { startIndex, endIndex } = findVisibleRange(
+      start,
+      end,
+      itemCount,
+      itemPositions,
+      getItemHeight
+    );
 
     // 가상 아이템 생성
-    const items: VirtualItem[] = [];
-    for (let i = visibleStart; i <= visibleEnd; i++) {
-      const start = itemPositions[i];
-      const size = getItemHeight(i);
-      items.push({
-        index: i,
-        start,
-        size,
-        end: start + size,
-        ref: createItemRef(i),
-      });
-    }
-
-    return items;
+    return createVirtualItems(
+      startIndex,
+      endIndex,
+      overscan,
+      itemCount,
+      itemPositions,
+      getItemHeight,
+      createItemRef
+    );
   }, [
     scrollOffset,
     containerHeight,
@@ -472,6 +453,7 @@ export function useVirtualList(
     itemPositions,
     getItemHeight,
     overscan,
+    createItemRef,
   ]);
 
   // 컨테이너 스크롤 핸들러 (requestAnimationFrame으로 최적화)
