@@ -184,13 +184,23 @@ export function useVirtualList(
     });
   }, []);
 
-  // scrollTarget에 따라 containerHeight 결정
-  const containerHeight =
-    scrollTarget === "window"
-      ? windowHeight
-      : containerRef
-      ? measuredHeight
-      : initialContainerHeight;
+  // scrollTarget에 따라 containerHeight 계산
+  const containerHeight = useMemo(() => {
+    if (scrollTarget === "window") {
+      return windowHeight;
+    }
+    // container 모드
+    if (containerRef) {
+      return measuredHeight;
+    }
+    return initialContainerHeight;
+  }, [
+    scrollTarget,
+    windowHeight,
+    containerRef,
+    measuredHeight,
+    initialContainerHeight,
+  ]);
 
   // containerRef 또는 scrollElementRef를 통한 자동 높이 측정 (container 모드일 때만)
   useEffect(() => {
