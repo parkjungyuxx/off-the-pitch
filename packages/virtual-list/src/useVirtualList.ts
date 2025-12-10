@@ -236,9 +236,8 @@ export function useVirtualList(
     };
   }, [scrollTarget]);
 
-  // 아이템 높이 측정 함수
-  const measureItemHeightAtIndex = useCallback((index: number, element: HTMLElement) => {
-    const height = element.offsetHeight;
+  // 아이템 높이 업데이트 공통 함수
+  const updateItemHeight = useCallback((index: number, height: number) => {
     if (height > 0) {
       setItemHeights((prev) => {
         // 배열 크기가 부족하면 확장
@@ -246,19 +245,31 @@ export function useVirtualList(
         while (newHeights.length <= index) {
           newHeights.push(undefined);
         }
-        
+
         const currentHeight = newHeights[index];
         // 높이가 변경되지 않았으면 업데이트하지 않음 (불필요한 리렌더링 방지)
-        if (currentHeight !== undefined && Math.abs(currentHeight - height) < 1) {
+        if (
+          currentHeight !== undefined &&
+          Math.abs(currentHeight - height) < 1
+        ) {
           return prev; // 변경 없음
         }
-        
+
         // 새로운 배열을 생성하여 React가 변경을 감지하도록 함
         newHeights[index] = height;
         return newHeights;
       });
     }
   }, []);
+
+  // 아이템 높이 측정 함수
+  const measureItemHeightAtIndex = useCallback(
+    (index: number, element: HTMLElement) => {
+      const height = element.offsetHeight;
+      updateItemHeight(index, height);
+    },
+    [updateItemHeight]
+  );
 
   // 아이템 높이 자동 측정 (measureItemHeight가 true인 경우)
   useEffect(() => {
@@ -279,25 +290,7 @@ export function useVirtualList(
         for (const entry of entries) {
           const element = entry.target as HTMLElement;
           const height = element.offsetHeight || entry.contentRect.height;
-          if (height > 0) {
-            setItemHeights((prev) => {
-              // 배열 크기가 부족하면 확장
-              const newHeights = [...prev];
-              while (newHeights.length <= index) {
-                newHeights.push(undefined);
-              }
-              
-              const currentHeight = newHeights[index];
-              // 높이가 변경되지 않았으면 업데이트하지 않음
-              if (currentHeight !== undefined && Math.abs(currentHeight - height) < 1) {
-                return prev;
-              }
-              
-              // 새로운 배열을 생성하여 React가 변경을 감지하도록 함
-              newHeights[index] = height;
-              return newHeights;
-            });
-          }
+          updateItemHeight(index, height);
         }
       });
 
@@ -317,23 +310,7 @@ export function useVirtualList(
           for (const entry of entries) {
             const element = entry.target as HTMLElement;
             const height = element.offsetHeight || entry.contentRect.height;
-            if (height > 0) {
-              setItemHeights((prev) => {
-                // 배열 크기가 부족하면 확장
-                const newHeights = [...prev];
-                while (newHeights.length <= index) {
-                  newHeights.push(undefined);
-                }
-                
-                const currentHeight = newHeights[index];
-                if (currentHeight !== undefined && Math.abs(currentHeight - height) < 1) {
-                  return prev;
-                }
-                
-                newHeights[index] = height;
-                return newHeights;
-              });
-            }
+            updateItemHeight(index, height);
           }
         });
 
@@ -346,7 +323,12 @@ export function useVirtualList(
       clearTimeout(timeoutId);
       observers.forEach((observer) => observer.disconnect());
     };
-  }, [measureItemHeight, itemCount, measureItemHeightAtIndex]);
+  }, [
+    measureItemHeight,
+    itemCount,
+    measureItemHeightAtIndex,
+    updateItemHeight,
+  ]);
 
   // 아이템 ref 콜백 생성 함수
   const createItemRef = useCallback(
@@ -387,7 +369,11 @@ export function useVirtualList(
   const itemPositions = useMemo(() => {
     const getItemHeight = (index: number): number => {
       // measureItemHeight가 활성화되고 해당 인덱스의 높이가 측정된 경우
-      if (measureItemHeight && index < itemHeights.length && itemHeights[index] !== undefined) {
+      if (
+        measureItemHeight &&
+        index < itemHeights.length &&
+        itemHeights[index] !== undefined
+      ) {
         const measuredHeight = itemHeights[index]!;
         return measuredHeight + itemSpacing;
       }
@@ -408,7 +394,11 @@ export function useVirtualList(
   const getItemHeight = useCallback(
     (index: number): number => {
       // measureItemHeight가 활성화되고 해당 인덱스의 높이가 측정된 경우
-      if (measureItemHeight && index < itemHeights.length && itemHeights[index] !== undefined) {
+      if (
+        measureItemHeight &&
+        index < itemHeights.length &&
+        itemHeights[index] !== undefined
+      ) {
         const measuredHeight = itemHeights[index]!;
         return measuredHeight + itemSpacing;
       }
@@ -525,9 +515,12 @@ export function useVirtualList(
     const handleWindowScroll = () => {
       const baseScrollOffset =
         window.scrollY || document.documentElement.scrollTop;
-      
+
       // 컨테이너 시작 위치를 기준으로 한 상대 스크롤 오프셋
-      const newScrollOffset = Math.max(0, baseScrollOffset - containerOffsetRef.current);
+      const newScrollOffset = Math.max(
+        0,
+        baseScrollOffset - containerOffsetRef.current
+      );
 
       // 이전 requestAnimationFrame 취소
       if (rafIdRef.current !== null) {
@@ -543,13 +536,13 @@ export function useVirtualList(
 
     // 초기 컨테이너 offset 측정
     updateContainerOffset();
-    
+
     // 초기 스크롤 위치 설정
     handleWindowScroll();
 
     // 스크롤 이벤트 리스너 추가 (passive: true로 성능 최적화)
     window.addEventListener("scroll", handleWindowScroll, { passive: true });
-    
+
     // 리사이즈 이벤트도 감지 (컨테이너 위치가 변경될 수 있음)
     const handleResize = () => {
       updateContainerOffset();
