@@ -23,17 +23,9 @@ export interface UseItemHeightMeasurementReturn {
    */
   itemHeights: (number | undefined)[];
   /**
-   * 아이템 ref Map (내부 사용)
-   */
-  itemRefsMap: React.MutableRefObject<Map<number, HTMLElement>>;
-  /**
    * 아이템 ref 콜백 생성 함수
    */
   createItemRef: (index: number) => (element: HTMLElement | null) => void;
-  /**
-   * 아이템 높이 업데이트 함수
-   */
-  updateItemHeight: (index: number, height: number) => void;
 }
 
 /**
@@ -179,8 +171,6 @@ export function useItemHeightMeasurement({
 
   return {
     itemHeights,
-    itemRefsMap,
     createItemRef,
-    updateItemHeight,
   };
 }
