@@ -40,8 +40,8 @@ jobs:
           echo "Testing package: ${{ matrix.package }}"
           pnpm --filter ${{ matrix.package }} list --depth=0 || true
 
-      - name: Run tests
-        run: pnpm --filter ${{ matrix.package }} test --run
+      - name: Run tests with coverage
+        run: pnpm --filter ${{ matrix.package }} test:coverage
         continue-on-error: false
 
       - name: Upload coverage reports
@@ -52,4 +52,23 @@ jobs:
           path: |
             packages/*/coverage
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 30
+
+      - name: Display coverage summary
+        if: always()
+        run: |
+          if [ -f "packages/${{ matrix.package }}/coverage/coverage-summary.json" ]; then
+            echo "## 📊 Test Coverage - ${{ matrix.package }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Metric | Coverage |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|----------|" >> $GITHUB_STEP_SUMMARY
+            node -e "
+              const fs = require('fs');
+              const coverage = JSON.parse(fs.readFileSync('packages/${{ matrix.package }}/coverage/coverage-summary.json', 'utf8'));
+              const total = coverage.total;
+              console.log(\`| Statements | \${total.statements.pct}% |\`);
+              console.log(\`| Branches | \${total.branches.pct}% |\`);
+              console.log(\`| Functions | \${total.functions.pct}% |\`);
+              console.log(\`| Lines | \${total.lines.pct}% |\`);
+            " >> $GITHUB_STEP_SUMMARY
+          fi
