@@ -21,7 +21,7 @@
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "type-check": "tsc --noEmit",
     "test": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage && node scripts/fix-coverage-title.js"
   },
   "keywords": [
     "react",
