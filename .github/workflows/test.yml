@@ -46,9 +46,16 @@ jobs:
 
       - name: Upload coverage reports
         if: always()
+        run: |
+          ARTIFACT_NAME=$(echo "${{ matrix.package }}" | tr '/' '-')
+          echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >> $GITHUB_ENV
+        continue-on-error: true
+
+      - name: Upload coverage artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-${{ matrix.package }}
+          name: coverage-${{ env.ARTIFACT_NAME }}
           path: |
             packages/*/coverage
           if-no-files-found: ignore
