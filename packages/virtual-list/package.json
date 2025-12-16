@@ -19,7 +19,9 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage && node scripts/fix-coverage-title.js"
   },
   "keywords": [
     "react",
@@ -42,13 +44,20 @@
   },
   "devDependencies": {
     "@eslint/js": "^8.57.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^5.1.2",
+    "@vitest/coverage-v8": "^4.0.15",
     "eslint": "^8.57.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "typescript-eslint": "^7.0.0",
+    "jsdom": "^27.3.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "tsup": "^8.0.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "typescript-eslint": "^7.0.0",
+    "vite": "^7.2.7",
+    "vitest": "^4.0.15"
   }
 }
