@@ -3,11 +3,15 @@ import OpenAI from "openai";
 import { getSupabaseClient } from "@/lib/supabase";
 import { getSummaryPrompt, getTranslationPrompt } from "@/lib/prompts";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 async function translateTextServerSide(text: string): Promise<string> {
+  if (!process.env.OPENAI_API_KEY) {
+    return text;
+  }
+
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+
   const systemPrompt = getTranslationPrompt({ targetLanguage: "ko" });
 
   const completion = await openai.chat.completions.create({
@@ -93,6 +97,10 @@ export async function GET(request: NextRequest) {
         }
       })
     );
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     const systemPrompt = getSummaryPrompt(translatedTweets);
 

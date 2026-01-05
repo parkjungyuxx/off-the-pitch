@@ -2,10 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { getTranslationPrompt } from "@/lib/prompts";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export async function POST(request: NextRequest) {
   try {
     const { text, targetLanguage = "ko" } = await request.json();
@@ -21,10 +17,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
     const systemPrompt = getTranslationPrompt({ targetLanguage });
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini", 
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
           content: text,
         },
       ],
-      temperature: 0.3, 
-      max_tokens: 1000, 
+      temperature: 0.3,
+      max_tokens: 1000,
     });
 
     const translatedText = completion.choices[0]?.message?.content;
