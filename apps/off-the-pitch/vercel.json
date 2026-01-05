@@ -1,0 +1,4 @@
+{
+  "buildCommand": "cd ../.. && pnpm --filter @bongsik/infinite-scroll build && pnpm --filter @bongsik/virtual-list build && pnpm --filter off-the-pitch build",
+  "installCommand": "cd ../.. && pnpm install"
+}
