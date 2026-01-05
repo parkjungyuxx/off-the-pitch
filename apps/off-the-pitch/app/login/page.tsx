@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { FcGoogle } from "react-icons/fc";
 import { useLogin } from "@/hooks/use-login";
 
-function LoginContent() {
+function LoginForm() {
   const { loading, error, handleSocialLogin } = useLogin();
 
   return (
@@ -64,7 +64,7 @@ function LoginContent() {
   );
 }
 
-export default function LoginPage() {
+function LoginContent() {
   return (
     <Suspense
       fallback={
@@ -77,7 +77,11 @@ export default function LoginPage() {
         </div>
       }
     >
-      <LoginContent />
+      <LoginForm />
     </Suspense>
   );
+}
+
+export default function LoginPage() {
+  return <LoginContent />;
 }
