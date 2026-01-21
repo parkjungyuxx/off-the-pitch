@@ -2,6 +2,8 @@
 
 해외축구 이적시장 뉴스를 한눈에 볼 수 있는 플랫폼입니다.
 
+https://off-the-pitch-ivory.vercel.app/
+
 # Overview
 
 > 신뢰할 수 있는 기자들의 이적 뉴스를 실시간으로 확인하고, AI 요약으로 빠르게 파악하세요.
