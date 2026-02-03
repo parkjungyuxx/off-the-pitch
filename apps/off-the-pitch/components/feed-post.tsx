@@ -22,6 +22,7 @@ export interface FeedPostProps {
   isFavorited?: boolean;
   onToggleFavorite?: () => void;
   showFollowButton?: boolean;
+  onInteraction?: () => void;
 }
 
 export function FeedPost({
@@ -36,6 +37,7 @@ export function FeedPost({
   isFavorited = false,
   onToggleFavorite,
   showFollowButton = true,
+  onInteraction,
 }: FeedPostProps) {
   const { theme } = useTheme();
   const [failedImageIdx, setFailedImageIdx] = useState<Set<number>>(new Set());
@@ -95,6 +97,7 @@ export function FeedPost({
                   onClick={(e) => {
                     e.stopPropagation();
                     onToggleFavorite();
+                    onInteraction?.();
                   }}
                   size="sm"
                   variant={isFavorited ? "secondary" : "outline"}
@@ -189,6 +192,7 @@ export function FeedPost({
               onClick={(e) => {
                 e.stopPropagation();
                 handleTranslate();
+                onInteraction?.();
               }}
               disabled={isTranslating}
               aria-label={isTranslated ? "원문 보기" : "번역 보기"}
