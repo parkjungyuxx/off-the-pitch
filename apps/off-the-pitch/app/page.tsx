@@ -201,6 +201,7 @@ export default function HomePage() {
                         onToggleFavorite={() =>
                           toggleFavorite(handle, displayName)
                         }
+                        onInteraction={() => setShowLeagueSelector(false)}
                       />
                     </div>
                   );

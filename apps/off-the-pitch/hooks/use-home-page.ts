@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useOptimistic } from "react";
+import { useState, useEffect, useMemo, useRef, useOptimistic, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-client";
 import { fetchTweets, type Tweet } from "@/lib/tweets";
@@ -21,6 +21,7 @@ import { filterTweetsByLeague } from "@/lib/league-filter";
 export function useHomePage() {
   const router = useRouter();
   const supabase = createClient();
+  const [isPending, startTransition] = useTransition();
   const [baseFollowedJournalists, setBaseFollowedJournalists] = useState<
     Set<string>
   >(new Set());
@@ -183,7 +184,9 @@ export function useHomePage() {
     const isFollowing = followedJournalists.has(handle);
     const newFollowingState = !isFollowing;
 
-    addOptimisticFollow({ handle, isFollowing: newFollowingState });
+    startTransition(() => {
+      addOptimisticFollow({ handle, isFollowing: newFollowingState });
+    });
 
     const result = isFollowing
       ? await unfollowJournalist(handle)

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useOptimistic } from "react";
+import { useEffect, useMemo, useState, useOptimistic, useTransition } from "react";
 import { fetchTweets, type Tweet } from "@/lib/tweets";
 import {
   fetchJournalistProfile,
@@ -49,6 +49,7 @@ interface UseJournalistProfileReturn {
 export function useJournalistProfile(
   username: string
 ): UseJournalistProfileReturn {
+  const [isPending, startTransition] = useTransition();
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [profile, setProfile] = useState<JournalistProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -161,7 +162,9 @@ export function useJournalistProfile(
     const handle = `@${username}`;
     const newFollowingState = !isFollowing;
 
-    addOptimisticFollow(newFollowingState);
+    startTransition(() => {
+      addOptimisticFollow(newFollowingState);
+    });
 
     const result = isFollowing
       ? await unfollowJournalist(handle)

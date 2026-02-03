@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useOptimistic } from "react";
+import { useEffect, useMemo, useRef, useState, useOptimistic, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-client";
 import {
@@ -40,6 +40,7 @@ interface UseFavoritesReturn {
 export function useFavorites(): UseFavoritesReturn {
   const router = useRouter();
   const supabase = createClient();
+  const [isPending, startTransition] = useTransition();
   const [baseFollowedJournalists, setBaseFollowedJournalists] = useState<
     Set<string>
   >(new Set());
@@ -224,7 +225,9 @@ export function useFavorites(): UseFavoritesReturn {
     const isFollowing = followedJournalists.has(handle);
     const newFollowingState = !isFollowing;
 
-    addOptimisticFollow({ handle, isFollowing: newFollowingState });
+    startTransition(() => {
+      addOptimisticFollow({ handle, isFollowing: newFollowingState });
+    });
 
     const result = isFollowing
       ? await unfollowJournalist(handle)
