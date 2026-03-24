@@ -41,9 +41,14 @@ export default function FavoritesPage() {
     toggleFavorite,
     sentinelRef,
     containerRef,
+    authReady,
   } = useFavorites();
 
   const scrollRef = useDragScroll<HTMLDivElement>();
+
+  if (!authReady) {
+    return null;
+  }
 
   return (
     <div className="flex min-h-screen bg-background">

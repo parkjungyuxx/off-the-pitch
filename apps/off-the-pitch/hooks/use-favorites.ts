@@ -33,6 +33,7 @@ interface UseFavoritesReturn {
   toggleFavorite: (handle: string, journalistName: string) => Promise<void>;
   sentinelRef: React.RefObject<HTMLDivElement>;
   containerRef: React.RefObject<HTMLDivElement | null>;
+  authReady: boolean;
 }
 
 export function useFavorites(): UseFavoritesReturn {
@@ -70,8 +71,20 @@ export function useFavorites(): UseFavoritesReturn {
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [journalistUsernames, setJournalistUsernames] = useState<string[]>([]);
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
+    const gate = async () => {
+      if (await ensureAuthOrRedirect()) {
+        setAuthReady(true);
+      }
+    };
+    void gate();
+  }, [ensureAuthOrRedirect]);
+
+  useEffect(() => {
+    if (!authReady) return;
+
     const loadInitialData = async () => {
       try {
         setLoading(true);
@@ -132,7 +145,7 @@ export function useFavorites(): UseFavoritesReturn {
     };
 
     loadInitialData();
-  }, []);
+  }, [authReady]);
 
   const fetchMoreTweets = async () => {
     if (
@@ -242,5 +255,6 @@ export function useFavorites(): UseFavoritesReturn {
     toggleFavorite,
     sentinelRef: sentinelRef as React.RefObject<HTMLDivElement>,
     containerRef,
+    authReady,
   };
 }
