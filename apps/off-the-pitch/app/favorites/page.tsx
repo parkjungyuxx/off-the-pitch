@@ -35,7 +35,6 @@ export default function FavoritesPage() {
     isLoadingMore,
     hasMore,
     error,
-    checkingAuth,
     virtualItems,
     totalHeight,
     setSelectedJournalist,
@@ -45,10 +44,6 @@ export default function FavoritesPage() {
   } = useFavorites();
 
   const scrollRef = useDragScroll<HTMLDivElement>();
-
-  if (checkingAuth) {
-    return null;
-  }
 
   return (
     <div className="flex min-h-screen bg-background">

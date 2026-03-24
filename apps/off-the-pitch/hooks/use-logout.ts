@@ -16,7 +16,7 @@ export function useLogout(): UseLogoutReturn {
         console.error("Logout error:", error);
         return;
       }
-      router.push("/login");
+      router.push("/");
       router.refresh();
     } catch (error) {
       console.error("Unexpected logout error:", error);

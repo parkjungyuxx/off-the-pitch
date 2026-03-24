@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useRef, useState, useOptimistic, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase-client";
 import {
   followJournalist,
   unfollowJournalist,
@@ -28,7 +26,6 @@ interface UseFavoritesReturn {
   isLoadingMore: boolean;
   hasMore: boolean;
   error: string | null;
-  checkingAuth: boolean;
   virtualItems: VirtualItem[];
   totalHeight: number;
   setSelectedJournalist: (handle: string | null) => void;
@@ -38,8 +35,6 @@ interface UseFavoritesReturn {
 }
 
 export function useFavorites(): UseFavoritesReturn {
-  const router = useRouter();
-  const supabase = createClient();
   const [isPending, startTransition] = useTransition();
   const [baseFollowedJournalists, setBaseFollowedJournalists] = useState<
     Set<string>
@@ -71,29 +66,8 @@ export function useFavorites(): UseFavoritesReturn {
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [journalistUsernames, setJournalistUsernames] = useState<string[]>([]);
-
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (!session) {
-          router.push("/login");
-          return;
-        }
-      } catch (error) {
-        console.error("Session check error:", error);
-        router.push("/login");
-      } finally {
-        setCheckingAuth(false);
-      }
-    };
-    checkSession();
-  }, [router, supabase]);
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -155,10 +129,8 @@ export function useFavorites(): UseFavoritesReturn {
       }
     };
 
-    if (!checkingAuth) {
-      loadInitialData();
-    }
-  }, [checkingAuth]);
+    loadInitialData();
+  }, []);
 
   const fetchMoreTweets = async () => {
     if (
@@ -260,7 +232,6 @@ export function useFavorites(): UseFavoritesReturn {
     isLoadingMore,
     hasMore,
     error,
-    checkingAuth,
     virtualItems,
     totalHeight,
     setSelectedJournalist,
