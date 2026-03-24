@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Search, Heart, Sun, Moon, LogOut } from "lucide-react";
 import { CgDetailsMore } from "react-icons/cg";
 import { GoHome, GoHomeFill } from "react-icons/go";
@@ -13,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useLogout } from "@/hooks/use-logout";
 import { useThemeToggle } from "@/hooks/use-theme-toggle";
+import { useEnsureAuth } from "@/hooks/use-ensure-auth";
 
 interface SidebarProps {
   activeMenu: "home" | "search" | "favorites" | null;
@@ -27,8 +29,18 @@ export function Sidebar({
   theme = "dark",
   onThemeChange,
 }: SidebarProps) {
+  const router = useRouter();
   const { handleLogout } = useLogout();
   const { toggleTheme } = useThemeToggle({ theme, onThemeChange });
+  const { ensureAuthOrRedirect } = useEnsureAuth();
+
+  const handleFavoritesNav = () => {
+    void (async () => {
+      if (!(await ensureAuthOrRedirect())) return;
+      onMenuClick("favorites");
+      router.push("/favorites");
+    })();
+  };
 
   return (
     <>
@@ -74,6 +86,7 @@ export function Sidebar({
           </Button>
 
           <Button
+            type="button"
             variant="ghost"
             size="icon"
             className={cn(
@@ -81,17 +94,14 @@ export function Sidebar({
               activeMenu === "favorites" &&
                 "bg-sidebar-accent hover:bg-sidebar-accent"
             )}
-            onClick={() => onMenuClick("favorites")}
-            asChild
+            onClick={handleFavoritesNav}
           >
-            <Link href="/favorites">
-              {activeMenu === "favorites" ? (
-                <Heart className="size-7 fill-red-500 text-red-500" />
-              ) : (
-                <Heart className="size-7" />
-              )}
-              <span className="sr-only">Favorites</span>
-            </Link>
+            {activeMenu === "favorites" ? (
+              <Heart className="size-7 fill-red-500 text-red-500" />
+            ) : (
+              <Heart className="size-7" />
+            )}
+            <span className="sr-only">Favorites</span>
           </Button>
         </nav>
 
@@ -187,6 +197,7 @@ export function Sidebar({
         </Button>
 
         <Button
+          type="button"
           variant="ghost"
           size="icon"
           className={cn(
@@ -194,17 +205,14 @@ export function Sidebar({
             activeMenu === "favorites" &&
               "bg-sidebar-accent hover:bg-sidebar-accent"
           )}
-          onClick={() => onMenuClick("favorites")}
-          asChild
+          onClick={handleFavoritesNav}
         >
-          <Link href="/favorites">
-            {activeMenu === "favorites" ? (
-              <Heart className="size-7 fill-red-500 text-red-500" />
-            ) : (
-              <Heart className="size-7" />
-            )}
-            <span className="sr-only">Favorites</span>
-          </Link>
+          {activeMenu === "favorites" ? (
+            <Heart className="size-7 fill-red-500 text-red-500" />
+          ) : (
+            <Heart className="size-7" />
+          )}
+          <span className="sr-only">Favorites</span>
         </Button>
 
         <Popover>

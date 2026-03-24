@@ -14,6 +14,7 @@ import {
   formatRelativeTime,
   getJournalistCredibility,
 } from "@/lib/utils";
+import { useEnsureAuth } from "@/hooks/use-ensure-auth";
 
 export interface MappedTweet {
   tweetId: string;
@@ -49,6 +50,7 @@ interface UseJournalistProfileReturn {
 export function useJournalistProfile(
   username: string
 ): UseJournalistProfileReturn {
+  const { ensureAuthOrRedirect } = useEnsureAuth();
   const [isPending, startTransition] = useTransition();
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [profile, setProfile] = useState<JournalistProfile | null>(null);
@@ -158,6 +160,7 @@ export function useJournalistProfile(
 
   const toggleFavorite = async () => {
     if (!profile) return;
+    if (!(await ensureAuthOrRedirect())) return;
 
     const handle = `@${username}`;
     const newFollowingState = !isFollowing;

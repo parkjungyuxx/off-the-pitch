@@ -9,6 +9,7 @@ import { useInfiniteScroll } from "@bongsik/infinite-scroll";
 import { useVirtualList, type VirtualItem } from "@bongsik/virtual-list";
 import { normalizeTwitterMediaUrl } from "@/lib/utils";
 import { ITEMS_PER_PAGE } from "@/lib/constants";
+import { useEnsureAuth } from "@/hooks/use-ensure-auth";
 
 export interface JournalistInfo {
   handle: string;
@@ -35,6 +36,7 @@ interface UseFavoritesReturn {
 }
 
 export function useFavorites(): UseFavoritesReturn {
+  const { ensureAuthOrRedirect } = useEnsureAuth();
   const [isPending, startTransition] = useTransition();
   const [baseFollowedJournalists, setBaseFollowedJournalists] = useState<
     Set<string>
@@ -194,6 +196,8 @@ export function useFavorites(): UseFavoritesReturn {
   });
 
   const toggleFavorite = async (handle: string, journalistName: string) => {
+    if (!(await ensureAuthOrRedirect())) return;
+
     const isFollowing = followedJournalists.has(handle);
     const newFollowingState = !isFollowing;
 

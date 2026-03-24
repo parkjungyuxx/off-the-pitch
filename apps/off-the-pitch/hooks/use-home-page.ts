@@ -15,8 +15,10 @@ import {
   INFINITE_SCROLL_THRESHOLD,
 } from "@/lib/constants";
 import { filterTweetsByLeague } from "@/lib/league-filter";
+import { useEnsureAuth } from "@/hooks/use-ensure-auth";
 
 export function useHomePage() {
+  const { ensureAuthOrRedirect } = useEnsureAuth();
   const [isPending, startTransition] = useTransition();
   const [baseFollowedJournalists, setBaseFollowedJournalists] = useState<
     Set<string>
@@ -154,6 +156,8 @@ export function useHomePage() {
   });
 
   const toggleFavorite = async (handle: string, journalistName: string) => {
+    if (!(await ensureAuthOrRedirect())) return;
+
     const isFollowing = followedJournalists.has(handle);
     const newFollowingState = !isFollowing;
 
