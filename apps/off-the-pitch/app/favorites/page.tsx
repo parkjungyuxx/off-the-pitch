@@ -35,18 +35,18 @@ export default function FavoritesPage() {
     isLoadingMore,
     hasMore,
     error,
-    checkingAuth,
     virtualItems,
     totalHeight,
     setSelectedJournalist,
     toggleFavorite,
     sentinelRef,
     containerRef,
+    authReady,
   } = useFavorites();
 
   const scrollRef = useDragScroll<HTMLDivElement>();
 
-  if (checkingAuth) {
+  if (!authReady) {
     return null;
   }
 

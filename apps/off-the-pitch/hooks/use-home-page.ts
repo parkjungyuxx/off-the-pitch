@@ -1,6 +1,4 @@
 import { useState, useEffect, useMemo, useRef, useOptimistic, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase-client";
 import { fetchTweets, type Tweet } from "@/lib/tweets";
 import {
   followJournalist,
@@ -17,10 +15,10 @@ import {
   INFINITE_SCROLL_THRESHOLD,
 } from "@/lib/constants";
 import { filterTweetsByLeague } from "@/lib/league-filter";
+import { useEnsureAuth } from "@/hooks/use-ensure-auth";
 
 export function useHomePage() {
-  const router = useRouter();
-  const supabase = createClient();
+  const { ensureAuthOrRedirect } = useEnsureAuth();
   const [isPending, startTransition] = useTransition();
   const [baseFollowedJournalists, setBaseFollowedJournalists] = useState<
     Set<string>
@@ -48,7 +46,6 @@ export function useHomePage() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
   const [isChatModalOpen, setIsChatModalOpen] = useState<boolean>(false);
   const [summary, setSummary] = useState<string>("");
   const [isLoadingSummary, setIsLoadingSummary] = useState<boolean>(false);
@@ -61,26 +58,6 @@ export function useHomePage() {
       setSummaryError(null);
     }
   };
-
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (!session) {
-          router.push("/login");
-          return;
-        }
-      } catch (error) {
-        console.error("Session check error:", error);
-        router.push("/login");
-      } finally {
-        setCheckingAuth(false);
-      }
-    };
-    checkSession();
-  }, [router, supabase]);
 
   useEffect(() => {
     if (isChatModalOpen) {
@@ -142,10 +119,8 @@ export function useHomePage() {
       }
     };
 
-    if (!checkingAuth) {
-      loadInitialData();
-    }
-  }, [checkingAuth]);
+    loadInitialData();
+  }, []);
 
   const fetchMoreTweets = async () => {
     if (isLoadingMore || !hasMore || !nextCursor) return;
@@ -181,6 +156,8 @@ export function useHomePage() {
   });
 
   const toggleFavorite = async (handle: string, journalistName: string) => {
+    if (!(await ensureAuthOrRedirect())) return;
+
     const isFollowing = followedJournalists.has(handle);
     const newFollowingState = !isFollowing;
 
@@ -224,7 +201,6 @@ export function useHomePage() {
   });
 
   return {
-    checkingAuth,
     followedJournalists,
     selectedLeague,
     setSelectedLeague,

@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useRef, useState, useOptimistic, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase-client";
 import {
   followJournalist,
   unfollowJournalist,
@@ -11,6 +9,7 @@ import { useInfiniteScroll } from "@bongsik/infinite-scroll";
 import { useVirtualList, type VirtualItem } from "@bongsik/virtual-list";
 import { normalizeTwitterMediaUrl } from "@/lib/utils";
 import { ITEMS_PER_PAGE } from "@/lib/constants";
+import { useEnsureAuth } from "@/hooks/use-ensure-auth";
 
 export interface JournalistInfo {
   handle: string;
@@ -28,18 +27,17 @@ interface UseFavoritesReturn {
   isLoadingMore: boolean;
   hasMore: boolean;
   error: string | null;
-  checkingAuth: boolean;
   virtualItems: VirtualItem[];
   totalHeight: number;
   setSelectedJournalist: (handle: string | null) => void;
   toggleFavorite: (handle: string, journalistName: string) => Promise<void>;
   sentinelRef: React.RefObject<HTMLDivElement>;
   containerRef: React.RefObject<HTMLDivElement | null>;
+  authReady: boolean;
 }
 
 export function useFavorites(): UseFavoritesReturn {
-  const router = useRouter();
-  const supabase = createClient();
+  const { ensureAuthOrRedirect } = useEnsureAuth();
   const [isPending, startTransition] = useTransition();
   const [baseFollowedJournalists, setBaseFollowedJournalists] = useState<
     Set<string>
@@ -71,31 +69,22 @@ export function useFavorites(): UseFavoritesReturn {
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [journalistUsernames, setJournalistUsernames] = useState<string[]>([]);
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (!session) {
-          router.push("/login");
-          return;
-        }
-      } catch (error) {
-        console.error("Session check error:", error);
-        router.push("/login");
-      } finally {
-        setCheckingAuth(false);
+    const gate = async () => {
+      if (await ensureAuthOrRedirect()) {
+        setAuthReady(true);
       }
     };
-    checkSession();
-  }, [router, supabase]);
+    void gate();
+  }, [ensureAuthOrRedirect]);
 
   useEffect(() => {
+    if (!authReady) return;
+
     const loadInitialData = async () => {
       try {
         setLoading(true);
@@ -155,10 +144,8 @@ export function useFavorites(): UseFavoritesReturn {
       }
     };
 
-    if (!checkingAuth) {
-      loadInitialData();
-    }
-  }, [checkingAuth]);
+    loadInitialData();
+  }, [authReady]);
 
   const fetchMoreTweets = async () => {
     if (
@@ -222,6 +209,8 @@ export function useFavorites(): UseFavoritesReturn {
   });
 
   const toggleFavorite = async (handle: string, journalistName: string) => {
+    if (!(await ensureAuthOrRedirect())) return;
+
     const isFollowing = followedJournalists.has(handle);
     const newFollowingState = !isFollowing;
 
@@ -260,12 +249,12 @@ export function useFavorites(): UseFavoritesReturn {
     isLoadingMore,
     hasMore,
     error,
-    checkingAuth,
     virtualItems,
     totalHeight,
     setSelectedJournalist,
     toggleFavorite,
     sentinelRef: sentinelRef as React.RefObject<HTMLDivElement>,
     containerRef,
+    authReady,
   };
 }

@@ -7,6 +7,7 @@ import {
   getFollowedJournalists,
 } from "@/lib/follows";
 import { normalizeTwitterMediaUrl, getJournalistCredibility } from "@/lib/utils";
+import { useEnsureAuth } from "@/hooks/use-ensure-auth";
 
 export interface Journalist {
   name: string;
@@ -25,6 +26,7 @@ const shuffle = <T,>(items: T[]) => {
 };
 
 export const useJournalistSearch = () => {
+  const { ensureAuthOrRedirect } = useEnsureAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [allJournalists, setAllJournalists] = useState<Journalist[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,6 +103,8 @@ export const useJournalistSearch = () => {
   }, [searchQuery, allJournalists]);
 
   const toggleFavorite = async (username: string, journalistName: string) => {
+    if (!(await ensureAuthOrRedirect())) return;
+
     const handle = `@${username}`;
     const isFollowing = favorites.has(username);
 

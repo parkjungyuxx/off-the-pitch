@@ -34,7 +34,6 @@ export default function HomePage() {
   const [showLeagueSelector, setShowLeagueSelector] = useState(false);
 
   const {
-    checkingAuth,
     followedJournalists,
     selectedLeague,
     setSelectedLeague,
@@ -54,10 +53,6 @@ export default function HomePage() {
     totalHeight,
     sentinelRef,
   } = useHomePage();
-
-  if (checkingAuth) {
-    return null;
-  }
 
   return (
     <div className="flex min-h-screen bg-background">
